@@ -724,11 +724,33 @@ function generateBands(startStr, endStr, numCourts){
 /* ── Google Form URL builder ── */
 function buildFormUrl(baseUrl, fields){
   let url=baseUrl; const params=[]; const FM=FORM_FIELDS;
-  if(FM.date      && fields.date)       params.push(`${FM.date}=${encodeURIComponent(fields.date)}`);
-  if(FM.time      && fields.time)       params.push(`${FM.time}=${encodeURIComponent(fields.time)}`);
-  if(FM.gym       && fields.gym)        params.push(`${FM.gym}=${encodeURIComponent(fields.gym)}`);
-  if(FM.court     && fields.court)      params.push(`${FM.court}=${encodeURIComponent(fields.court)}`);
-  if(FM.name      && fields.name)       params.push(`${FM.name}=${encodeURIComponent(fields.name)}`);
+
+  // Date field: Google Forms date picker needs year, month, day as separate params
+  // e.g. entry.1138025410_year=2026&entry.1138025410_month=3&entry.1138025410_day=10
+  if(FM.date && fields.date){
+    const [y,m,d] = fields.date.split('-');
+    params.push(`${FM.date}_year=${y}`);
+    params.push(`${FM.date}_month=${parseInt(m)}`);  // no leading zero
+    params.push(`${FM.date}_day=${parseInt(d)}`);    // no leading zero
+  }
+
+  // Time field: Google Forms time picker needs hour and minute as separate params
+  // e.g. entry.444668940_hour=6&entry.444668940_minute=0
+  // We use the band start time only (e.g. "6:00 AM" → hour=6, minute=0)
+  if(FM.time && fields.time){
+    // fields.time is like "6:00 AM – 6:20 AM", grab the start part
+    const startPart = fields.time.split('–')[0].trim(); // "6:00 AM"
+    const [timePart, meridiem] = startPart.split(' ');  // ["6:00", "AM"]
+    let [hour, minute] = timePart.split(':').map(Number);
+    if(meridiem==='PM' && hour!==12) hour+=12;
+    if(meridiem==='AM' && hour===12) hour=0;
+    params.push(`${FM.time}_hour=${hour}`);
+    params.push(`${FM.time}_minute=${minute}`);
+  }
+
+  if(FM.gym        && fields.gym)        params.push(`${FM.gym}=${encodeURIComponent(fields.gym)}`);
+  if(FM.court      && fields.court)      params.push(`${FM.court}=${encodeURIComponent(fields.court)}`);
+  if(FM.name       && fields.name)       params.push(`${FM.name}=${encodeURIComponent(fields.name)}`);
   if(FM.cancelCode && fields.cancelCode) params.push(`${FM.cancelCode}=${encodeURIComponent(fields.cancelCode)}`);
   if(params.length) url+=(url.includes('?')?'&':'?')+params.join('&');
   return url;
