@@ -528,18 +528,14 @@ const ADMIN_PIN    = "8164";
 const DEFAULT_FORM = "https://forms.gle/o7Xb2rM8kLk4CEaf7";
 const SLOT_MINS    = 20;
 
-/*
-  GOOGLE FORM PRE-FILL GUIDE:
-  Get field IDs: open form → preview → right-click field → Inspect → find "entry.XXXXXXX"
-  Then set them below. Leave null to open form without pre-fill.
-*/
+/* ── Google Form field IDs ── */
 const FORM_FIELDS = {
-  date:       null,  // e.g. "entry.123456789"
-  time:       null,
-  gym:        null,
-  court:      null,
-  name:       null,
-  cancelCode: null,
+  date:       "entry.1138025410",  // "Which date are you signing up for?" (date picker → YYYY-MM-DD)
+  time:       "entry.444668940",   // "Which time slot?"
+  gym:        "entry.1223337587",  // "Gym #"
+  court:      "entry.1448130123",  // "Which court?"
+  name:       "entry.1874089917",  // "Your Full Name"
+  cancelCode: "entry.1606772192",  // "Cancellation Code"
 };
 
 /* ── Gym config ── */
@@ -899,10 +895,10 @@ function confirmSignup(){
 
   const baseUrl=slot.formUrl&&slot.formUrl.includes('http')?slot.formUrl:DEFAULT_FORM;
   const formUrl=buildFormUrl(baseUrl,{
-    date:`${fmtDay(slot.date)}, ${fmtFull(slot.date)}`,
+    date:slot.date,  // YYYY-MM-DD — works with Google Form date picker
     time:`${band.start} – ${band.end}`,
-    gym:slot.gym||'Gym 3',
-    court:band.courts[ci].name,
+    gym:(slot.gym||'Gym 3').replace('Gym ',''),  // sends "3" not "Gym 3"
+    court:band.courts[ci].name.replace('Court ',''),  // sends "1" not "Court 1"
     name:name,
     cancelCode:code
   });
