@@ -4,79 +4,77 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Garner Badminton · Community Gyms</title>
+
+<!-- Firebase SDK (free Spark tier) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  /* ═══════════════════════════════════════════════
+     FIREBASE CONFIG
+     ─────────────────────────────────────────────
+     HOW TO SET UP (one-time, free):
+     1. Go to https://console.firebase.google.com
+     2. Click "Add project" → name it "garner-badminton" → Continue
+     3. Disable Google Analytics (not needed) → Create project
+     4. Click "Realtime Database" in the left sidebar → Create database
+     5. Choose "Start in test mode" → Enable
+     6. Click the gear icon ⚙ → Project settings
+     7. Scroll to "Your apps" → click </> (Web) → register app name
+     8. Copy the firebaseConfig object values below:
+     ─────────────────────────────────────────────
+     REPLACE THE PLACEHOLDER VALUES BELOW:
+  ═══════════════════════════════════════════════ */
+  const firebaseConfig = {
+    apiKey:            "AIzaSyBAGWY_JB-r3nRZR9y78ljZNi9wRe4q3wo",
+    authDomain:        "garner-badminton.firebaseapp.com",
+    databaseURL:       "https://garner-badminton-default-rtdb.firebaseio.com",
+    projectId:         "garner-badminton",
+    storageBucket:     "garner-badminton.firebasestorage.app",
+    messagingSenderId: "1023295198838",
+    appId:             "1:1023295198838:web:68e71b6aebcf1213293157",
+    measurementId:     "G-JTCWWGBKJD"
+  };
+
+  // ── Firebase is only used when config is filled in ──
+  const FB_CONFIGURED = !firebaseConfig.apiKey.includes("YOUR_");
+
+  let db, slotsRef, gymsRef;
+  if (FB_CONFIGURED) {
+    const app = initializeApp(firebaseConfig);
+    db = getDatabase(app);
+    slotsRef = ref(db, "slots");
+    gymsRef  = ref(db, "gyms");
+  }
+
+  // Expose to global scope for non-module functions
+  window._fb = { FB_CONFIGURED, db, slotsRef, gymsRef, set, get, onValue, ref,
+                 getDatabase: () => db };
+</script>
+
 <style>
-/* ── Google Font ── */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
-/* ── Design Tokens ── */
 :root {
-  --saffron:      #F4A100;
-  --saffron-light:#FFD166;
-  --saffron-glow: rgba(244,161,0,0.25);
-  --saffron-soft: rgba(244,161,0,0.08);
-  --ink:          #0D0D0D;
-  --ink-2:        #1A1A1A;
-  --ink-3:        #2B2B2B;
-  --muted:        #6B6B6B;
-  --muted-2:      #8C8C8C;
-  --divider:      rgba(255,255,255,0.08);
-  --surface:      #161616;
-  --surface-2:    #1E1E1E;
-  --surface-3:    #252525;
-  --open-bg:      rgba(34,197,94,0.1);
-  --open-border:  rgba(34,197,94,0.3);
-  --open-text:    #4ade80;
-  --taken-bg:     rgba(239,68,68,0.1);
-  --taken-border: rgba(239,68,68,0.25);
-  --taken-text:   #f87171;
-  --radius-sm:    8px;
-  --radius:       14px;
-  --radius-lg:    20px;
-  --shadow:       0 4px 24px rgba(0,0,0,0.4);
-  --shadow-glow:  0 0 40px rgba(244,161,0,0.15);
+  --saffron:#F4A100;--saffron-light:#FFD166;--saffron-glow:rgba(244,161,0,0.25);--saffron-soft:rgba(244,161,0,0.08);
+  --ink:#0D0D0D;--ink-2:#1A1A1A;--ink-3:#2B2B2B;--muted:#6B6B6B;--muted-2:#8C8C8C;
+  --divider:rgba(255,255,255,0.08);--surface:#161616;--surface-2:#1E1E1E;--surface-3:#252525;
+  --open-bg:rgba(34,197,94,0.1);--open-border:rgba(34,197,94,0.3);--open-text:#4ade80;
+  --taken-bg:rgba(239,68,68,0.1);--taken-border:rgba(239,68,68,0.25);--taken-text:#f87171;
+  --radius-sm:8px;--radius:14px;--radius-lg:20px;
+  --shadow:0 4px 24px rgba(0,0,0,0.4);--shadow-glow:0 0 40px rgba(244,161,0,0.15);
 }
-
-/* ── Reset ── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{
-  font-family:'Inter',system-ui,sans-serif;
-  background:var(--ink);
-  color:#E8E8E8;
-  min-height:100vh;
-  -webkit-font-smoothing:antialiased;
-}
-
-/* ── Scrollbar ── */
+body{font-family:'Inter',system-ui,sans-serif;background:var(--ink);color:#E8E8E8;min-height:100vh;-webkit-font-smoothing:antialiased;}
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:var(--ink-2)}
 ::-webkit-scrollbar-thumb{background:var(--ink-3);border-radius:3px}
 
-/* ═══════════════════════════════════
-   HERO
-═══════════════════════════════════ */
-.hero{
-  position:relative;overflow:hidden;
-  padding:72px 24px 80px;text-align:center;
-  background:var(--ink);
-}
-.hero::before{
-  content:'';position:absolute;inset:0;
-  background:
-    radial-gradient(ellipse 70% 60% at 50% -10%, rgba(244,161,0,0.18) 0%, transparent 70%),
-    radial-gradient(ellipse 40% 40% at 80% 80%, rgba(244,161,0,0.06) 0%, transparent 60%);
-  pointer-events:none;
-}
-.hero::after{
-  content:'🏸';position:absolute;right:-20px;bottom:-30px;
-  font-size:220px;opacity:.04;transform:rotate(25deg);pointer-events:none;
-}
-.hero-eyebrow{
-  display:inline-flex;align-items:center;gap:6px;
-  font-size:.7rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;
-  color:var(--saffron);border:1px solid rgba(244,161,0,0.35);
-  background:rgba(244,161,0,0.08);border-radius:50px;padding:5px 14px;margin-bottom:24px;
-}
+/* HERO */
+.hero{position:relative;overflow:hidden;padding:72px 24px 80px;text-align:center;background:var(--ink);}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% -10%,rgba(244,161,0,0.18) 0%,transparent 70%),radial-gradient(ellipse 40% 40% at 80% 80%,rgba(244,161,0,0.06) 0%,transparent 60%);pointer-events:none;}
+.hero::after{content:'🏸';position:absolute;right:-20px;bottom:-30px;font-size:220px;opacity:.04;transform:rotate(25deg);pointer-events:none;}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:.7rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--saffron);border:1px solid rgba(244,161,0,0.35);background:rgba(244,161,0,0.08);border-radius:50px;padding:5px 14px;margin-bottom:24px;}
 .hero h1{font-size:clamp(2.2rem,6vw,3.8rem);font-weight:900;letter-spacing:-1.5px;line-height:1.05;color:#fff;}
 .hero h1 span{color:var(--saffron)}
 .hero-sub{margin-top:14px;font-size:1rem;color:var(--muted-2);font-weight:400;max-width:480px;margin-left:auto;margin-right:auto;}
@@ -84,32 +82,31 @@ body{
 .pill{display:flex;align-items:center;gap:6px;font-size:.78rem;font-weight:500;color:#B0B0B0;background:var(--surface);border:1px solid var(--divider);border-radius:50px;padding:6px 14px;}
 .pill-dot{width:6px;height:6px;border-radius:50%;background:var(--saffron)}
 
-/* ═══════════════════════════════════
-   LAYOUT
-═══════════════════════════════════ */
-.page{max-width:1000px;margin:0 auto;padding:0 20px 100px}
-.section-label{font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--saffron);margin-bottom:10px;}
+/* SYNC STATUS */
+.sync-pill{display:inline-flex;align-items:center;gap:5px;font-size:.7rem;font-weight:600;padding:4px 12px;border-radius:50px;transition:all .3s;}
+.sync-pill.live{background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);color:#4ade80;}
+.sync-pill.local{background:rgba(244,161,0,0.1);border:1px solid rgba(244,161,0,0.3);color:var(--saffron);}
+.sync-pill.loading{background:var(--surface);border:1px solid var(--divider);color:var(--muted);}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
 
-/* ═══════════════════════════════════
-   WEEK TABS
-═══════════════════════════════════ */
+/* LAYOUT */
+.page{max-width:1100px;margin:0 auto;padding:0 20px 100px}
+
+/* TABS */
 .tabs-container{position:sticky;top:0;z-index:50;background:rgba(13,13,13,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--divider);padding:12px 20px;}
-.tabs-scroll{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;max-width:1000px;margin:0 auto;}
+.tabs-scroll{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;max-width:1100px;margin:0 auto;}
 .tabs-scroll::-webkit-scrollbar{display:none}
 .tab-btn{flex:none;padding:8px 18px;font-size:.8rem;font-weight:600;font-family:'Inter',sans-serif;background:var(--surface-2);border:1px solid var(--divider);border-radius:50px;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .2s ease;}
 .tab-btn:hover{color:#E8E8E8;border-color:rgba(255,255,255,0.15);background:var(--surface-3)}
 .tab-btn.active{background:var(--saffron);border-color:var(--saffron);color:var(--ink);}
 
-/* ═══════════════════════════════════
-   PANELS
-═══════════════════════════════════ */
-.week-panel{display:none}
-.week-panel.active{display:block}
+/* PANELS */
+.week-panel{display:none}.week-panel.active{display:block}
 .week-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:32px 0 20px;}
 .week-header-title{font-size:1.35rem;font-weight:800;letter-spacing:-.5px;color:#fff}
 .week-header-sub{font-size:.82rem;color:var(--muted);margin-top:2px}
 
-/* ── Day section ── */
+/* DAY CARD */
 .day-section{margin-bottom:20px}
 .day-card{border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--divider);background:var(--surface);box-shadow:0 2px 16px rgba(0,0,0,0.3);transition:box-shadow .2s;}
 .day-card:hover{box-shadow:0 4px 24px rgba(0,0,0,0.4)}
@@ -120,75 +117,69 @@ body{
 .day-date-str{font-size:.78rem;color:var(--muted);margin-top:1px}
 .day-time-badge{font-size:.74rem;font-weight:600;background:rgba(244,161,0,0.12);color:var(--saffron);border:1px solid rgba(244,161,0,0.25);border-radius:50px;padding:4px 12px;white-space:nowrap;}
 
-/* ── Slots table ── */
+/* SLOTS TABLE — 20-min rows */
 .slots-table{width:100%;border-collapse:collapse}
-.slots-table th{padding:10px 16px;font-size:.68rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:center;border-bottom:1px solid var(--divider);}
-.slots-table th:first-child{text-align:left}
-.slots-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle;}
+.slots-table th{padding:10px 14px;font-size:.65rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:center;border-bottom:1px solid var(--divider);white-space:nowrap;}
+.slots-table th:first-child{text-align:left;min-width:90px;}
+.slots-table td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle;}
 .slots-table tr:last-child td{border-bottom:none}
-.slots-table td:first-child{font-size:.8rem;font-weight:600;color:var(--muted-2);white-space:nowrap;padding-left:20px;font-variant-numeric:tabular-nums;}
+.slots-table td:first-child{font-size:.78rem;font-weight:600;color:var(--muted-2);white-space:nowrap;padding-left:18px;font-variant-numeric:tabular-nums;min-width:90px;}
 .slots-table td:not(:first-child){text-align:center}
+.slots-table tbody tr:nth-child(odd){background:rgba(255,255,255,0.012);}
 
-/* ── Slot button ── */
-.slot-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:100%;max-width:200px;padding:9px 14px;border-radius:var(--radius-sm);font-size:.78rem;font-weight:600;font-family:'Inter',sans-serif;border:1.5px solid;cursor:pointer;transition:all .15s ease;line-height:1;white-space:nowrap;}
+/* SLOT BUTTON */
+.slot-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;width:100%;max-width:180px;padding:7px 10px;border-radius:var(--radius-sm);font-size:.73rem;font-weight:600;font-family:'Inter',sans-serif;border:1.5px solid;cursor:pointer;transition:all .15s ease;line-height:1;white-space:nowrap;}
 .slot-open{background:var(--open-bg);border-color:var(--open-border);color:var(--open-text);}
 .slot-open:hover{background:rgba(34,197,94,0.18);border-color:rgba(34,197,94,0.5);transform:translateY(-1px);box-shadow:0 4px 12px rgba(34,197,94,0.15);}
-.slot-open::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--open-text);flex-shrink:0}
+.slot-open::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--open-text);flex-shrink:0}
 .slot-taken{background:var(--taken-bg);border-color:var(--taken-border);color:var(--taken-text);cursor:default;}
-.slot-taken::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--taken-text);flex-shrink:0}
-/* cancel button (tiny, below taken cell) */
-.btn-cancel-slot{
-  display:block;margin:4px auto 0;
-  background:none;border:none;
-  font-size:.68rem;color:var(--muted);
-  cursor:pointer;font-family:'Inter',sans-serif;
-  text-decoration:underline;text-underline-offset:2px;
-  transition:color .15s;
-}
+.slot-taken::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--taken-text);flex-shrink:0}
+.btn-cancel-slot{display:block;margin:3px auto 0;background:none;border:none;font-size:.63rem;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;text-decoration:underline;text-underline-offset:2px;transition:color .15s;}
 .btn-cancel-slot:hover{color:#f87171}
 
-/* ═══════════════════════════════════
-   INFO BANNER
-═══════════════════════════════════ */
+/* INFO BANNER */
 .info-banner{display:flex;gap:14px;align-items:flex-start;background:var(--saffron-soft);border:1px solid rgba(244,161,0,0.2);border-radius:var(--radius);padding:16px 20px;margin:24px 0;font-size:.85rem;color:#C8C8C8;line-height:1.6;}
 .info-banner-icon{font-size:1.2rem;flex-shrink:0;margin-top:1px}
 .info-banner a{color:var(--saffron);text-decoration:none}
 .info-banner a:hover{text-decoration:underline}
 
-/* ═══════════════════════════════════
-   LEGEND
-═══════════════════════════════════ */
+/* DISCLAIMER BANNER */
+.disclaimer-banner{background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);border-radius:var(--radius);padding:18px 20px;margin:0 0 24px;font-size:.8rem;color:#C0C0C0;line-height:1.7;}
+.disclaimer-banner summary{cursor:pointer;font-size:.83rem;font-weight:600;color:#f87171;list-style:none;display:flex;align-items:center;gap:7px;user-select:none;}
+.disclaimer-banner summary::-webkit-details-marker{display:none}
+.disclaimer-banner summary::before{content:'⚠️'}
+.disclaimer-banner summary .chevron{margin-left:auto;font-size:.7rem;transition:transform .2s;color:var(--muted);}
+details[open] .chevron{transform:rotate(180deg)}
+.disclaimer-body{margin-top:14px;padding-top:14px;border-top:1px solid rgba(239,68,68,0.15);}
+.disclaimer-body p{margin-bottom:10px;}
+.disclaimer-body ul{padding-left:18px;margin:8px 0;}
+.disclaimer-body li{margin-bottom:5px;}
+
+/* LEGEND */
 .legend{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:24px;}
 .legend-item{display:flex;align-items:center;gap:7px;font-size:.78rem;color:var(--muted);font-weight:500;}
 .legend-pip{width:10px;height:10px;border-radius:50%;border:1.5px solid;flex-shrink:0;}
 
-/* ═══════════════════════════════════
-   EMPTY STATES
-═══════════════════════════════════ */
+/* EMPTY */
 .empty-week{text-align:center;padding:72px 24px;color:var(--muted);}
 .empty-icon{font-size:52px;margin-bottom:16px;opacity:.5}
 .empty-week h3{font-size:1.1rem;font-weight:700;color:#888;margin-bottom:6px}
 .empty-week p{font-size:.88rem;line-height:1.6}
 
-/* ═══════════════════════════════════
-   ADMIN FAB
-═══════════════════════════════════ */
+/* ADMIN FAB */
 .fab{position:fixed;bottom:28px;right:28px;z-index:100;display:flex;align-items:center;gap:8px;padding:13px 22px;border-radius:50px;background:var(--saffron);color:var(--ink);font-size:.85rem;font-weight:700;font-family:'Inter',sans-serif;border:none;cursor:pointer;box-shadow:0 4px 24px rgba(244,161,0,0.4);transition:all .2s ease;letter-spacing:.2px;}
 .fab:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(244,161,0,0.5);}
-.fab-icon{font-size:1rem}
 .admin-unlocked .fab{background:#E8E8E8}
 .admin-unlocked .fab::after{content:'✓';width:18px;height:18px;border-radius:50%;background:var(--saffron);color:var(--ink);font-size:.7rem;font-weight:900;display:flex;align-items:center;justify-content:center;}
 .btn-add-slot{display:none;align-items:center;gap:6px;padding:9px 18px;border-radius:var(--radius-sm);background:transparent;border:1.5px solid rgba(244,161,0,0.4);color:var(--saffron);font-size:.82rem;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all .15s;}
 .btn-add-slot:hover{background:var(--saffron-soft)}
 .admin-unlocked .btn-add-slot{display:flex}
 
-/* ═══════════════════════════════════
-   MODALS
-═══════════════════════════════════ */
+/* MODALS */
 .overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:16px;}
 .overlay.open{display:flex}
 .modal{background:var(--surface-2);border:1px solid var(--divider);border-radius:var(--radius-lg);box-shadow:0 24px 80px rgba(0,0,0,0.6);width:100%;max-width:480px;max-height:90vh;overflow-y:auto;animation:slideUp .22s cubic-bezier(.34,1.56,.64,1);}
-.modal-sm{max-width:380px}
+.modal-sm{max-width:400px}
 @keyframes slideUp{from{transform:translateY(24px) scale(.97);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
 .modal-head{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:1px solid var(--divider);}
 .modal-head h2{font-size:1rem;font-weight:700;color:#fff;letter-spacing:-.2px}
@@ -210,22 +201,23 @@ body{
 .pin-input{text-align:center !important;font-size:2rem !important;letter-spacing:10px;font-weight:800 !important;color:#fff !important;}
 .pin-error{color:#f87171;font-size:.8rem;margin-top:8px;display:none;text-align:center}
 
-/* ── Cancel code highlight ── */
-.cancel-code-box{
-  background:rgba(244,161,0,0.1);border:1px solid rgba(244,161,0,0.35);
-  border-radius:var(--radius-sm);padding:14px 16px;margin:16px 0;
-  font-size:.88rem;line-height:1.7;
-}
-.cancel-code{
-  display:inline-block;font-size:1.3rem;font-weight:900;
-  letter-spacing:4px;color:var(--saffron);
-  background:rgba(244,161,0,0.12);
-  border:1px dashed rgba(244,161,0,0.4);
-  border-radius:6px;padding:4px 14px;margin:6px 0;
-  font-family:'Courier New',monospace;
-}
+/* Disclaimer agree box in signup modal */
+.disclaimer-agree{background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:18px;font-size:.78rem;color:#C0C0C0;line-height:1.7;}
+.disclaimer-agree summary{cursor:pointer;font-size:.8rem;font-weight:600;color:#f87171;list-style:none;display:flex;align-items:center;gap:6px;margin-bottom:0;}
+.disclaimer-agree summary::-webkit-details-marker{display:none}
+.disclaimer-agree summary::before{content:'⚠️';font-size:.85rem;}
+.disclaimer-agree-body{margin-top:10px;font-size:.74rem;color:#A0A0A0;line-height:1.65;}
+.disclaimer-agree-body ul{padding-left:16px;margin:6px 0;}
+.disclaimer-agree-body li{margin-bottom:4px;}
+.agree-check{display:flex;align-items:flex-start;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(239,68,68,0.15);}
+.agree-check input[type=checkbox]{width:16px;height:16px;margin-top:1px;accent-color:var(--saffron);flex-shrink:0;cursor:pointer;}
+.agree-check label{font-size:.78rem;color:#C8C8C8;cursor:pointer;line-height:1.5;}
 
-/* ── Manage list ── */
+/* Cancel code */
+.cancel-code-box{background:rgba(244,161,0,0.1);border:1px solid rgba(244,161,0,0.35);border-radius:var(--radius-sm);padding:14px 16px;margin:16px 0;font-size:.88rem;line-height:1.7;}
+.cancel-code{display:inline-block;font-size:1.3rem;font-weight:900;letter-spacing:4px;color:var(--saffron);background:rgba(244,161,0,0.12);border:1px dashed rgba(244,161,0,0.4);border-radius:6px;padding:4px 14px;margin:6px 0;font-family:'Courier New',monospace;}
+
+/* Manage */
 .manage-item{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--divider);}
 .manage-item:last-child{border-bottom:none}
 .manage-badge{width:36px;height:36px;border-radius:9px;background:var(--saffron-soft);border:1px solid rgba(244,161,0,.2);display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;}
@@ -238,20 +230,12 @@ body{
 .btn-cancel-booking:hover{background:rgba(239,68,68,.2)}
 .modal-divider{border:none;border-top:1px solid var(--divider);margin:18px 0;}
 
-/* ── Gym toggle chips (admin) ── */
-.gym-chip{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:7px 14px;border-radius:50px;cursor:pointer;
-  font-size:.8rem;font-weight:600;font-family:'Inter',sans-serif;
-  border:1.5px solid var(--divider);background:var(--surface-3);color:var(--muted);
-  transition:all .15s;
-}
+/* Gym chips */
+.gym-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:50px;cursor:pointer;font-size:.8rem;font-weight:600;font-family:'Inter',sans-serif;border:1.5px solid var(--divider);background:var(--surface-3);color:var(--muted);transition:all .15s;}
 .gym-chip.active{background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.35);color:#4ade80;}
 .gym-chip .dot{width:8px;height:8px;border-radius:50%;background:currentColor;}
 
-/* ═══════════════════════════════════
-   GUIDE CARD
-═══════════════════════════════════ */
+/* Guide */
 .guide-card{background:var(--surface);border:1px solid var(--divider);border-radius:var(--radius-lg);padding:28px;margin-top:40px;}
 .guide-card h3{font-size:1rem;font-weight:700;color:#fff;margin-bottom:18px;display:flex;align-items:center;gap:8px;}
 .guide-steps{display:flex;flex-direction:column;gap:12px}
@@ -262,24 +246,22 @@ body{
 .gform-btn{display:inline-flex;align-items:center;gap:8px;margin-top:18px;background:var(--saffron);color:var(--ink);padding:11px 22px;border-radius:var(--radius-sm);font-size:.85rem;font-weight:700;text-decoration:none;transition:all .15s;}
 .gform-btn:hover{background:var(--saffron-light);transform:translateY(-1px)}
 
-/* ═══════════════════════════════════
-   TOAST
-═══════════════════════════════════ */
+/* Toast */
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--surface-3);border:1px solid var(--divider);color:#E8E8E8;padding:11px 22px;border-radius:50px;font-size:.82rem;font-weight:500;box-shadow:0 8px 32px rgba(0,0,0,.5);opacity:0;transition:all .28s cubic-bezier(.34,1.56,.64,1);z-index:400;pointer-events:none;white-space:nowrap;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* ═══════════════════════════════════
-   FOOTER
-═══════════════════════════════════ */
+/* Loading skeleton */
+.loading-state{text-align:center;padding:60px 24px;color:var(--muted);}
+.loading-spinner{width:36px;height:36px;border:3px solid var(--surface-3);border-top-color:var(--saffron);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Footer */
 footer{text-align:center;padding:32px 20px;font-size:.75rem;color:var(--muted);border-top:1px solid var(--divider);margin-top:20px;}
 footer a{color:var(--saffron);text-decoration:none}
 
-/* ═══════════════════════════════════
-   RESPONSIVE
-═══════════════════════════════════ */
 @media(max-width:640px){
-  .slots-table th,.slots-table td{padding:8px 8px}
-  .slot-btn{font-size:.72rem;padding:8px 10px;max-width:100%}
+  .slots-table th,.slots-table td{padding:6px 6px}
+  .slot-btn{font-size:.68rem;padding:7px 8px;max-width:100%}
   .frow{grid-template-columns:1fr}
   .hero{padding:56px 16px 64px}
   .modal-body{padding:18px 16px}
@@ -288,95 +270,79 @@ footer a{color:var(--saffron);text-decoration:none}
 </head>
 <body>
 
-<!-- ══ HERO ══ -->
 <header class="hero">
   <div class="hero-eyebrow">🏸 Community Courts · Garner Rec Center</div>
   <h1>Badminton<br><span>Sign-Up</span></h1>
-  <p class="hero-sub">Claim your court slot. No account needed — just show up and play.</p>
+  <p class="hero-sub">Claim your 20-minute court slot. No account needed — just show up and play.</p>
   <div class="hero-pills">
     <div class="pill"><span class="pill-dot"></span><span id="heroPill">Gym 3 · 3 Courts</span></div>
     <div class="pill"><span class="pill-dot"></span><span id="heroDateRange">Loading...</span></div>
-    <div class="pill"><span class="pill-dot"></span>Volunteer-managed</div>
+    <div class="pill"><span class="pill-dot"></span>20-min slots · Volunteer-managed</div>
+    <div class="pill"><span id="syncPill" class="sync-pill loading"><span class="sync-dot"></span>Connecting…</span></div>
   </div>
 </header>
 
-<!-- ══ STICKY TABS ══ -->
 <nav class="tabs-container">
   <div class="tabs-scroll" id="weekTabs"></div>
 </nav>
 
-<!-- ══ PAGE BODY ══ -->
 <div class="page">
+
+  <!-- DISCLAIMER BANNER (collapsible) -->
+  <details class="disclaimer-banner" style="margin-top:24px;">
+    <summary>Important Disclaimer — Please Read Before Signing Up <span class="chevron">▼</span></summary>
+    <div class="disclaimer-body">
+      <p>This signup form is organized by <strong style="color:#E8E8E8;">community volunteers</strong> for coordination purposes only. It is <strong style="color:#f87171;">not affiliated with or endorsed by</strong> Garner Parks &amp; Recreation or Garner Rec Center. Submitting this form does <strong style="color:#f87171;">not guarantee</strong> court availability or reservation.</p>
+      <p>By signing up, you acknowledge and agree that:</p>
+      <ul>
+        <li>This is an <strong style="color:#E8E8E8;">unofficial, community-managed</strong> system and does not represent Garner Rec Center in any way.</li>
+        <li>Badminton and other physical activities carry <strong style="color:#E8E8E8;">inherent risks of injury</strong>. You participate at your own risk.</li>
+        <li>You are <strong style="color:#E8E8E8;">solely responsible</strong> for your own safety and the safety of others around you.</li>
+        <li>You will follow <strong style="color:#E8E8E8;">all rules and regulations</strong> set by Garner Rec Center.</li>
+        <li>The organizers, volunteers, and community members involved in this coordination system are <strong style="color:#E8E8E8;">not liable</strong> for any injury, damage, or loss arising from your participation.</li>
+      </ul>
+      <p style="color:#888;font-size:.76rem;">If you do not agree with these terms, please do not submit this form.</p>
+    </div>
+  </details>
 
   <div class="info-banner">
     <span class="info-banner-icon">💡</span>
     <span>
-      Tap any <strong style="color:var(--open-text)">green slot</strong> to sign up — no account needed.
-      Each session shows which <strong>Gym</strong> and which <strong>Courts</strong> are open.
-      When you sign up, you'll get a <strong>cancellation code</strong> — save it to free your spot if plans change.
-      Schedule based on the <a href="https://garner.recdesk.com/Community/Calendar" target="_blank">Garner Rec calendar</a> and updated weekly. Always verify before heading out.
+      Each session is split into <strong>20-minute slots</strong>. Tap any <strong style="color:var(--open-text)">green cell</strong> to reserve that court for that time window.
+      You'll receive a <strong>cancellation code</strong> — use it to free your spot if plans change, no coordinator needed.
+      Schedule based on <a href="https://garner.recdesk.com/Community/Calendar" target="_blank">Garner Rec calendar</a> and updated weekly. Always verify before heading out.
     </span>
   </div>
 
   <div class="legend">
-    <div class="legend-item">
-      <div class="legend-pip" style="background:var(--open-bg);border-color:var(--open-border)"></div>
-      Available — click to sign up
-    </div>
-    <div class="legend-item">
-      <div class="legend-pip" style="background:var(--taken-bg);border-color:var(--taken-border)"></div>
-      Booked — click name to cancel
-    </div>
+    <div class="legend-item"><div class="legend-pip" style="background:var(--open-bg);border-color:var(--open-border)"></div>Available — click to book</div>
+    <div class="legend-item"><div class="legend-pip" style="background:var(--taken-bg);border-color:var(--taken-border)"></div>Booked — click name to cancel</div>
   </div>
 
   <div id="weekPanels"></div>
 
-  <!-- How It Works -->
   <div class="guide-card">
-    <h3>📋 How sign-up works</h3>
+    <h3>📋 How it works</h3>
     <div class="guide-steps">
-      <div class="guide-step">
-        <div class="step-num">1</div>
-        <div class="step-text">Choose your week using the tabs above, then find your preferred day and time slot.</div>
-      </div>
-      <div class="guide-step">
-        <div class="step-num">2</div>
-        <div class="step-text">Click any <strong>green "Available" button</strong> under a court. A Google Form opens in a new tab — no Google account required.</div>
-      </div>
-      <div class="guide-step">
-        <div class="step-num">3</div>
-        <div class="step-text">Fill in your name and submit. Your court is reserved! You'll see a <strong style="color:var(--saffron)">cancellation code</strong> — save it.</div>
-      </div>
-      <div class="guide-step">
-        <div class="step-num">4</div>
-        <div class="step-text">Can't make it? Click your name on the court slot and enter your code to <strong>instantly free the spot</strong> for someone else — no coordinator needed.</div>
-      </div>
+      <div class="guide-step"><div class="step-num">1</div><div class="step-text">Pick your week tab, find a day and preferred 20-minute window.</div></div>
+      <div class="guide-step"><div class="step-num">2</div><div class="step-text">Click a <strong>green Available</strong> button under a court. Read and agree to the disclaimer, enter your name to reserve it.</div></div>
+      <div class="guide-step"><div class="step-num">3</div><div class="step-text">A Google Form opens — your details are <strong>pre-filled</strong>. Just hit Submit to confirm. You'll also see your <strong style="color:var(--saffron)">cancellation code</strong> — screenshot or note it down.</div></div>
+      <div class="guide-step"><div class="step-num">4</div><div class="step-text">Can't make it? Click your name on the slot, enter your code, and the spot is instantly freed — <strong>no coordinator needed</strong>.</div></div>
+      <div class="guide-step"><div class="step-num">5</div><div class="step-text">Bookings <strong>sync in real-time</strong> across all devices — everyone sees the latest status instantly.</div></div>
     </div>
-    <a class="gform-btn" href="https://forms.gle/o7Xb2rM8kLk4CEaf7" target="_blank">
-      📝 Open sign-up form →
-    </a>
+    <a class="gform-btn" href="https://forms.gle/o7Xb2rM8kLk4CEaf7" target="_blank">📝 Open sign-up form →</a>
   </div>
-
 </div>
 
-<!-- ══ ADMIN FAB ══ -->
-<button class="fab" id="adminFab" onclick="openPinModal()">
-  <span class="fab-icon">⚙️</span>
-  <span>Coordinator</span>
-</button>
+<button class="fab" id="adminFab" onclick="openPinModal()"><span>⚙️</span><span>Coordinator</span></button>
 
-<!-- ══ PIN MODAL ══ -->
+<!-- PIN -->
 <div class="overlay" id="pinOverlay">
   <div class="modal modal-sm">
-    <div class="modal-head">
-      <h2>Coordinator Access</h2>
-      <button class="modal-close" onclick="closeOverlay('pinOverlay')">✕</button>
-    </div>
+    <div class="modal-head"><h2>Coordinator Access</h2><button class="modal-close" onclick="closeOverlay('pinOverlay')">✕</button></div>
     <div class="modal-body">
-      <div class="fgroup">
-        <label>Enter PIN</label>
-        <input type="password" class="pin-input" id="pinInput" maxlength="6" placeholder="••••"
-               onkeydown="if(event.key==='Enter')checkPin()"/>
+      <div class="fgroup"><label>Enter PIN</label>
+        <input type="password" class="pin-input" id="pinInput" maxlength="6" placeholder="••••" onkeydown="if(event.key==='Enter')checkPin()"/>
         <div class="pin-error" id="pinError">Incorrect PIN — try again.</div>
       </div>
       <button class="btn-primary" onclick="checkPin()">Unlock</button>
@@ -384,19 +350,34 @@ footer a{color:var(--saffron);text-decoration:none}
   </div>
 </div>
 
-<!-- ══ SIGN-UP MODAL (name entry) ══ -->
+<!-- SIGN-UP (with disclaimer + agree checkbox) -->
 <div class="overlay" id="signupOverlay">
   <div class="modal modal-sm">
-    <div class="modal-head">
-      <h2>Reserve Your Court</h2>
-      <button class="modal-close" onclick="closeOverlay('signupOverlay')">✕</button>
-    </div>
+    <div class="modal-head"><h2>Reserve Your Slot</h2><button class="modal-close" onclick="closeOverlay('signupOverlay')">✕</button></div>
     <div class="modal-body">
-      <div id="signupSlotInfo" style="font-size:.82rem;color:var(--muted);margin-bottom:16px;line-height:1.7;"></div>
-      <div class="fgroup">
-        <label>Your Name</label>
-        <input type="text" id="signupName" placeholder="e.g. Priya Sharma"
-               onkeydown="if(event.key==='Enter')confirmSignup()"/>
+      <div id="signupSlotInfo" style="font-size:.82rem;color:var(--muted);margin-bottom:16px;line-height:1.8;background:var(--surface-3);border-radius:8px;padding:12px;"></div>
+
+      <!-- Compact disclaimer + agree -->
+      <details class="disclaimer-agree" id="signupDisclaimerDetails">
+        <summary>⚠️ Safety &amp; Liability Disclaimer — read before booking</summary>
+        <div class="disclaimer-agree-body">
+          <p>This is an <strong>unofficial, volunteer-managed</strong> coordination system — not affiliated with Garner Rec Center. Signing up does not guarantee court availability.</p>
+          <p>By proceeding, you agree that:</p>
+          <ul>
+            <li>You participate in physical activity <strong>at your own risk</strong>.</li>
+            <li>You are solely responsible for your own safety.</li>
+            <li>You will follow all rules set by Garner Rec Center.</li>
+            <li>Volunteers and organizers are <strong>not liable</strong> for injury, damage, or loss.</li>
+          </ul>
+        </div>
+        <div class="agree-check">
+          <input type="checkbox" id="agreeCheck"/>
+          <label for="agreeCheck">I have read and agree to the disclaimer above. I understand this is volunteer-managed and participate at my own risk.</label>
+        </div>
+      </details>
+
+      <div class="fgroup"><label>Your Name</label>
+        <input type="text" id="signupName" placeholder="e.g. Priya Sharma" onkeydown="if(event.key==='Enter')confirmSignup()"/>
         <p class="fhint">Enter the name you'll use when you arrive at the gym.</p>
       </div>
       <button class="btn-primary" onclick="confirmSignup()">Reserve Court</button>
@@ -405,198 +386,125 @@ footer a{color:var(--saffron);text-decoration:none}
   </div>
 </div>
 
-<!-- ══ BOOKING CONFIRMED MODAL ══ -->
+<!-- CONFIRMED -->
 <div class="overlay" id="confirmedOverlay">
   <div class="modal modal-sm">
-    <div class="modal-head">
-      <h2>✅ Court Reserved!</h2>
-      <button class="modal-close" onclick="closeOverlay('confirmedOverlay')">✕</button>
-    </div>
+    <div class="modal-head"><h2>✅ Court Reserved!</h2><button class="modal-close" onclick="closeOverlay('confirmedOverlay')">✕</button></div>
     <div class="modal-body">
       <div id="confirmedDetails" style="font-size:.85rem;color:#C8C8C8;line-height:1.7;margin-bottom:4px;"></div>
       <div class="cancel-code-box">
         <div style="font-size:.75rem;font-weight:700;color:var(--saffron);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;">🔑 Your Cancellation Code</div>
         <div id="confirmedCode" class="cancel-code"></div>
         <div style="font-size:.76rem;color:var(--muted-2);margin-top:8px;line-height:1.6;">
-          Save this code! If your plans change, click your name on the court slot and enter this code to instantly free the spot — no coordinator needed.
+          Save this! This code is also captured in your Google Form response. To cancel: click your name on the slot and enter this code.
         </div>
       </div>
+      <p style="font-size:.76rem;color:var(--muted);margin-bottom:12px;line-height:1.5;">
+        📊 A Google Form tab should have opened — your booking details were pre-filled. Please submit it to complete your registration and keep a record.
+      </p>
       <button class="btn-primary" onclick="closeOverlay('confirmedOverlay')">Got it — see you on the court! 🏸</button>
     </div>
   </div>
 </div>
 
-<!-- ══ CANCEL BOOKING MODAL ══ -->
+<!-- CANCEL -->
 <div class="overlay" id="cancelOverlay">
   <div class="modal modal-sm">
-    <div class="modal-head">
-      <h2>Cancel Reservation</h2>
-      <button class="modal-close" onclick="closeOverlay('cancelOverlay')">✕</button>
-    </div>
+    <div class="modal-head"><h2>Cancel Reservation</h2><button class="modal-close" onclick="closeOverlay('cancelOverlay')">✕</button></div>
     <div class="modal-body">
-      <div id="cancelSlotInfo" style="font-size:.82rem;color:var(--muted);margin-bottom:16px;line-height:1.7;"></div>
-      <div class="fgroup">
-        <label>Enter Your Cancellation Code</label>
-        <input type="text" id="cancelCodeInput" placeholder="e.g. AB1C2D"
-               style="text-transform:uppercase;letter-spacing:2px;font-weight:700;"
-               onkeydown="if(event.key==='Enter')confirmCancel()"/>
-        <p class="fhint">This was shown to you when you signed up.</p>
+      <div id="cancelSlotInfo" style="font-size:.82rem;color:var(--muted);margin-bottom:16px;line-height:1.7;background:var(--surface-3);border-radius:8px;padding:12px;"></div>
+      <div class="fgroup"><label>Cancellation Code</label>
+        <input type="text" id="cancelCodeInput" placeholder="e.g. AB3K7M" style="text-transform:uppercase;letter-spacing:3px;font-weight:700;" onkeydown="if(event.key==='Enter')confirmCancel()"/>
+        <p class="fhint">Shown when you booked, also in your Google Form confirmation email.</p>
       </div>
-      <div class="pin-error" id="cancelError">Incorrect code — check your code and try again.</div>
+      <div class="pin-error" id="cancelError">Incorrect code — check your confirmation and try again.</div>
       <button class="btn-primary" onclick="confirmCancel()" style="margin-top:8px;">Free This Slot</button>
       <button class="btn-ghost" onclick="closeOverlay('cancelOverlay')">Go Back</button>
-      <p style="font-size:.72rem;color:var(--muted);margin-top:14px;text-align:center;">
-        Lost your code? Contact the coordinator to manually free the slot.
-      </p>
+      <p style="font-size:.72rem;color:var(--muted);margin-top:14px;text-align:center;">Lost your code? The coordinator can force-cancel from the admin panel.</p>
     </div>
   </div>
 </div>
 
-<!-- ══ ADD SLOT MODAL ══ -->
+<!-- ADD SLOT -->
 <div class="overlay" id="addOverlay">
   <div class="modal">
-    <div class="modal-head">
-      <h2>Add Badminton Slot</h2>
-      <button class="modal-close" onclick="closeOverlay('addOverlay')">✕</button>
-    </div>
+    <div class="modal-head"><h2>Add Badminton Session</h2><button class="modal-close" onclick="closeOverlay('addOverlay')">✕</button></div>
     <div class="modal-body">
-      <div class="fgroup">
-        <label>Date</label>
-        <input type="date" id="slotDate"/>
+      <p style="font-size:.8rem;color:var(--muted);margin-bottom:16px;line-height:1.5;">
+        The session window will be <strong style="color:#E8E8E8;">automatically split into 20-minute bookable slots</strong> for each court.
+      </p>
+      <div class="fgroup"><label>Date</label><input type="date" id="slotDate"/></div>
+      <div class="frow">
+        <div class="fgroup"><label>Session Start</label><input type="time" id="slotStart" value="06:00"/></div>
+        <div class="fgroup"><label>Session End</label><input type="time" id="slotEnd" value="09:30"/></div>
       </div>
       <div class="frow">
-        <div class="fgroup">
-          <label>Start Time</label>
-          <input type="time" id="slotStart" value="06:00"/>
-        </div>
-        <div class="fgroup">
-          <label>End Time</label>
-          <input type="time" id="slotEnd" value="09:30"/>
+        <div class="fgroup"><label>Gym</label><select id="slotGym"></select><p class="fhint">Only enabled gyms shown.</p></div>
+        <div class="fgroup"><label>Number of Courts</label>
+          <select id="slotCourts"><option value="3" selected>3 Courts</option><option value="2">2 Courts</option><option value="1">1 Court</option></select>
+          <p class="fhint">Courts open this session.</p>
         </div>
       </div>
-      <div class="frow">
-        <div class="fgroup">
-          <label>Gym</label>
-          <select id="slotGym"></select>
-          <p class="fhint">Only enabled gyms are available for booking.</p>
-        </div>
-        <div class="fgroup">
-          <label>Number of Courts</label>
-          <select id="slotCourts">
-            <option value="3" selected>3 Courts</option>
-            <option value="2">2 Courts</option>
-            <option value="1">1 Court</option>
-          </select>
-          <p class="fhint">How many courts are open this session.</p>
-        </div>
+      <div class="fgroup"><label>Session Notes (optional)</label><input type="text" id="slotNotes" placeholder="e.g. Evening Open Play"/></div>
+      <div class="fgroup"><label>Google Form URL</label><input type="url" id="slotFormUrl" placeholder="https://forms.gle/..."/>
+        <p class="fhint">Booking details + cancellation code will be pre-filled as URL parameters. Leave blank for default.</p>
       </div>
-      <div class="fgroup">
-        <label>Session Notes (optional)</label>
-        <input type="text" id="slotNotes" placeholder="e.g. Evening Open Play"/>
-      </div>
-      <div class="fgroup">
-        <label>Google Form URL</label>
-        <input type="url" id="slotFormUrl" placeholder="https://forms.gle/..."/>
-        <p class="fhint">Leave blank to use the default form. Sign-up button opens this form in a new tab.</p>
-      </div>
-      <button class="btn-primary" onclick="addSlot()">Add Slot</button>
+      <button class="btn-primary" onclick="addSlot()">Add Session</button>
       <button class="btn-ghost" onclick="closeOverlay('addOverlay')">Cancel</button>
     </div>
   </div>
 </div>
 
-<!-- ══ BULK ADD MODAL ══ -->
+<!-- BULK ADD -->
 <div class="overlay" id="bulkOverlay">
   <div class="modal">
-    <div class="modal-head">
-      <h2>📅 Add Recurring Slots</h2>
-      <button class="modal-close" onclick="closeOverlay('bulkOverlay')">✕</button>
-    </div>
+    <div class="modal-head"><h2>📅 Add Recurring Sessions</h2><button class="modal-close" onclick="closeOverlay('bulkOverlay')">✕</button></div>
     <div class="modal-body">
-      <p style="font-size:.82rem;color:var(--muted);margin-bottom:18px;line-height:1.6;">
-        Add multiple weeks at once — e.g. every Tuesday &amp; Friday for the next 4 weeks.
-      </p>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:18px;line-height:1.6;">Each session window is auto-split into 20-minute slots per court.</p>
       <div class="fgroup">
-        <label>Which days of the week?</label>
+        <label>Days of the week</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:2px;">
-          <label style="display:flex;align-items:center;gap:5px;font-size:.85rem;color:#E8E8E8;text-transform:none;letter-spacing:0;cursor:pointer;background:var(--surface-3);border:1px solid var(--divider);border-radius:6px;padding:6px 12px;">
-            <input type="checkbox" name="bulkDay" value="1" style="width:auto;accent-color:var(--saffron);"> Mon
-          </label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:.85rem;color:#E8E8E8;text-transform:none;letter-spacing:0;cursor:pointer;background:var(--surface-3);border:1px solid var(--divider);border-radius:6px;padding:6px 12px;">
-            <input type="checkbox" name="bulkDay" value="2" checked style="width:auto;accent-color:var(--saffron);"> Tue
-          </label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:.85rem;color:#E8E8E8;text-transform:none;letter-spacing:0;cursor:pointer;background:var(--surface-3);border:1px solid var(--divider);border-radius:6px;padding:6px 12px;">
-            <input type="checkbox" name="bulkDay" value="3" checked style="width:auto;accent-color:var(--saffron);"> Wed
-          </label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:.85rem;color:#E8E8E8;text-transform:none;letter-spacing:0;cursor:pointer;background:var(--surface-3);border:1px solid var(--divider);border-radius:6px;padding:6px 12px;">
-            <input type="checkbox" name="bulkDay" value="4" style="width:auto;accent-color:var(--saffron);"> Thu
-          </label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:.85rem;color:#E8E8E8;text-transform:none;letter-spacing:0;cursor:pointer;background:var(--surface-3);border:1px solid var(--divider);border-radius:6px;padding:6px 12px;">
-            <input type="checkbox" name="bulkDay" value="5" checked style="width:auto;accent-color:var(--saffron);"> Fri
-          </label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:.85rem;color:#E8E8E8;text-transform:none;letter-spacing:0;cursor:pointer;background:var(--surface-3);border:1px solid var(--divider);border-radius:6px;padding:6px 12px;">
-            <input type="checkbox" name="bulkDay" value="6" checked style="width:auto;accent-color:var(--saffron);"> Sat
-          </label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:.85rem;color:#E8E8E8;text-transform:none;letter-spacing:0;cursor:pointer;background:var(--surface-3);border:1px solid var(--divider);border-radius:6px;padding:6px 12px;">
-            <input type="checkbox" name="bulkDay" value="0" style="width:auto;accent-color:var(--saffron);"> Sun
-          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:.85rem;color:#E8E8E8;text-transform:none;letter-spacing:0;cursor:pointer;background:var(--surface-3);border:1px solid var(--divider);border-radius:6px;padding:6px 12px;"><input type="checkbox" name="bulkDay" value="1" style="width:auto;accent-color:var(--saffron);"> Mon</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:.85rem;color:#E8E8E8;text-transform:none;letter-spacing:0;cursor:pointer;background:var(--surface-3);border:1px solid var(--divider);border-radius:6px;padding:6px 12px;"><input type="checkbox" name="bulkDay" value="2" checked style="width:auto;accent-color:var(--saffron);"> Tue</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:.85rem;color:#E8E8E8;text-transform:none;letter-spacing:0;cursor:pointer;background:var(--surface-3);border:1px solid var(--divider);border-radius:6px;padding:6px 12px;"><input type="checkbox" name="bulkDay" value="3" checked style="width:auto;accent-color:var(--saffron);"> Wed</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:.85rem;color:#E8E8E8;text-transform:none;letter-spacing:0;cursor:pointer;background:var(--surface-3);border:1px solid var(--divider);border-radius:6px;padding:6px 12px;"><input type="checkbox" name="bulkDay" value="4" style="width:auto;accent-color:var(--saffron);"> Thu</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:.85rem;color:#E8E8E8;text-transform:none;letter-spacing:0;cursor:pointer;background:var(--surface-3);border:1px solid var(--divider);border-radius:6px;padding:6px 12px;"><input type="checkbox" name="bulkDay" value="5" checked style="width:auto;accent-color:var(--saffron);"> Fri</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:.85rem;color:#E8E8E8;text-transform:none;letter-spacing:0;cursor:pointer;background:var(--surface-3);border:1px solid var(--divider);border-radius:6px;padding:6px 12px;"><input type="checkbox" name="bulkDay" value="6" checked style="width:auto;accent-color:var(--saffron);"> Sat</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:.85rem;color:#E8E8E8;text-transform:none;letter-spacing:0;cursor:pointer;background:var(--surface-3);border:1px solid var(--divider);border-radius:6px;padding:6px 12px;"><input type="checkbox" name="bulkDay" value="0" style="width:auto;accent-color:var(--saffron);"> Sun</label>
         </div>
       </div>
+      <div class="frow"><div class="fgroup"><label>From Date</label><input type="date" id="bulkFrom"/></div><div class="fgroup"><label>To Date</label><input type="date" id="bulkTo"/></div></div>
+      <div class="frow"><div class="fgroup"><label>Session Start</label><input type="time" id="bulkStart" value="06:00"/></div><div class="fgroup"><label>Session End</label><input type="time" id="bulkEnd" value="09:30"/></div></div>
       <div class="frow">
-        <div class="fgroup"><label>From Date</label><input type="date" id="bulkFrom"/></div>
-        <div class="fgroup"><label>To Date</label><input type="date" id="bulkTo"/></div>
+        <div class="fgroup"><label>Gym</label><select id="bulkGym"></select></div>
+        <div class="fgroup"><label>Courts</label><select id="bulkCourts"><option value="3" selected>3 Courts</option><option value="2">2 Courts</option><option value="1">1 Court</option></select></div>
       </div>
-      <div class="frow">
-        <div class="fgroup"><label>Start Time</label><input type="time" id="bulkStart" value="06:00"/></div>
-        <div class="fgroup"><label>End Time</label><input type="time" id="bulkEnd" value="09:30"/></div>
-      </div>
-      <div class="frow">
-        <div class="fgroup">
-          <label>Gym</label>
-          <select id="bulkGym"></select>
-        </div>
-        <div class="fgroup">
-          <label>Number of Courts</label>
-          <select id="bulkCourts">
-            <option value="3" selected>3 Courts</option>
-            <option value="2">2 Courts</option>
-            <option value="1">1 Court</option>
-          </select>
-        </div>
-      </div>
-      <div class="fgroup">
-        <label>Session Notes (optional)</label>
-        <input type="text" id="bulkNotes" placeholder="e.g. Morning Open Play"/>
-      </div>
+      <div class="fgroup"><label>Session Notes (optional)</label><input type="text" id="bulkNotes" placeholder="e.g. Morning Open Play"/></div>
       <div id="bulkPreview" style="display:none;margin-bottom:18px;">
-        <div style="font-size:.75rem;font-weight:700;color:var(--saffron);letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px;">Preview — slots to be created</div>
+        <div style="font-size:.75rem;font-weight:700;color:var(--saffron);letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px;">Preview</div>
         <div id="bulkPreviewList" style="background:var(--surface-3);border-radius:8px;padding:12px;font-size:.8rem;color:var(--muted);max-height:140px;overflow-y:auto;line-height:1.9;"></div>
       </div>
-      <button class="btn-primary" style="margin-bottom:10px;" onclick="previewBulk()">Preview Slots</button>
-      <button class="btn-primary" id="bulkConfirmBtn" style="display:none;background:#1e8e3e;" onclick="confirmBulk()">✅ Add All Slots</button>
+      <button class="btn-primary" style="margin-bottom:10px;" onclick="previewBulk()">Preview Sessions</button>
+      <button class="btn-primary" id="bulkConfirmBtn" style="display:none;background:#1e8e3e;" onclick="confirmBulk()">✅ Add All</button>
       <button class="btn-ghost" onclick="closeOverlay('bulkOverlay')">Cancel</button>
     </div>
   </div>
 </div>
 
-<!-- ══ MANAGE MODAL ══ -->
+<!-- MANAGE -->
 <div class="overlay" id="manageOverlay">
   <div class="modal">
-    <div class="modal-head">
-      <h2>Manage Slots</h2>
-      <button class="modal-close" onclick="closeOverlay('manageOverlay')">✕</button>
-    </div>
+    <div class="modal-head"><h2>Manage Sessions</h2><button class="modal-close" onclick="closeOverlay('manageOverlay')">✕</button></div>
     <div class="modal-body">
-      <!-- Gym enable/disable toggles -->
       <div style="margin-bottom:18px;">
         <div style="font-size:.72rem;font-weight:700;color:var(--saffron);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px;">Gym Status</div>
         <div id="gymChips" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
-        <p class="fhint" style="margin-top:8px;">Toggle gyms on/off. Only enabled gyms appear in the booking form and scheduling modals.</p>
+        <p class="fhint" style="margin-top:8px;">Toggle gyms on/off. Enabled gyms appear in scheduling and booking forms.</p>
       </div>
       <hr class="modal-divider"/>
       <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
-        <button class="btn-primary" style="flex:1;min-width:140px;" onclick="closeOverlay('manageOverlay');openAddModal('')">＋ Single Slot</button>
-        <button class="btn-primary" style="flex:1;min-width:140px;background:#6b3fa0;" onclick="closeOverlay('manageOverlay');openBulkModal()">📅 Recurring Slots</button>
+        <button class="btn-primary" style="flex:1;min-width:140px;" onclick="closeOverlay('manageOverlay');openAddModal('')">＋ Single Session</button>
+        <button class="btn-primary" style="flex:1;min-width:140px;background:#6b3fa0;" onclick="closeOverlay('manageOverlay');openBulkModal()">📅 Recurring Sessions</button>
       </div>
       <hr class="modal-divider"/>
       <div id="manageList"></div>
@@ -604,430 +512,467 @@ footer a{color:var(--saffron);text-decoration:none}
   </div>
 </div>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <footer>
   <p>Community badminton coordination for Garner Rec Center · Volunteer-managed · Not an official service</p>
-  <p style="margin-top:4px">
-    <a href="https://garner.recdesk.com/Community/Calendar" target="_blank">Official Garner Rec Calendar ↗</a>
-  </p>
-  <p style="margin-top:12px;color:#555;font-size:.72rem;">
-    Built with ❤️ by <strong style="color:#888">Viral Patel</strong> for the Garner badminton community
-  </p>
+  <p style="margin-top:4px"><a href="https://garner.recdesk.com/Community/Calendar" target="_blank">Official Garner Rec Calendar ↗</a></p>
+  <p style="margin-top:12px;color:#555;font-size:.72rem;">Built with ❤️ by <strong style="color:#888">Viral Patel</strong> &amp; community volunteers (Adarsh and team) for the Garner badminton community</p>
 </footer>
 
-<!-- ═══════════════════════════════════════════════
-     JAVASCRIPT
-═══════════════════════════════════════════════ -->
 <script>
 /* ══════════════════════════════════════════
    CONFIG
 ══════════════════════════════════════════ */
 const ADMIN_PIN    = "8164";
 const DEFAULT_FORM = "https://forms.gle/o7Xb2rM8kLk4CEaf7";
+const SLOT_MINS    = 20;
 
-/* ══════════════════════════════════════════
-   GYM CONFIG — future-proof
-   Add new gyms here; set enabled:true when the gym opens.
-   courts = max courts that gym has (used in add-slot UI limit).
-══════════════════════════════════════════ */
+/*
+  GOOGLE FORM PRE-FILL GUIDE:
+  Get field IDs: open form → preview → right-click field → Inspect → find "entry.XXXXXXX"
+  Then set them below. Leave null to open form without pre-fill.
+*/
+const FORM_FIELDS = {
+  date:       null,  // e.g. "entry.123456789"
+  time:       null,
+  gym:        null,
+  court:      null,
+  name:       null,
+  cancelCode: null,
+};
+
+/* ── Gym config ── */
 const GYM_DEFAULTS = [
   { name:"Gym 3", courts:3, enabled:true  },
   { name:"Gym 1", courts:3, enabled:false },
   { name:"Gym 2", courts:3, enabled:false },
 ];
 
+/* ── March 2026 schedule pre-loaded from Badminton.xlsx ──
+   Coordinator can delete/add from the admin panel at any time.
+*/
+const SEED_SLOTS = [
+  { date:"2026-03-02", start:"18:00", end:"20:00", gym:"Gym 3" },
+  { date:"2026-03-03", start:"06:00", end:"09:30", gym:"Gym 3" },
+  { date:"2026-03-04", start:"07:00", end:"09:30", gym:"Gym 3" },
+  { date:"2026-03-06", start:"07:00", end:"09:30", gym:"Gym 3" },
+  { date:"2026-03-07", start:"09:00", end:"11:30", gym:"Gym 3" },
+  { date:"2026-03-10", start:"06:00", end:"09:30", gym:"Gym 3" },
+  { date:"2026-03-13", start:"07:00", end:"09:30", gym:"Gym 3" },
+  { date:"2026-03-17", start:"06:00", end:"09:30", gym:"Gym 3" },
+  { date:"2026-03-20", start:"07:00", end:"09:30", gym:"Gym 3" },
+  { date:"2026-03-23", start:"18:00", end:"20:00", gym:"Gym 3" },
+  { date:"2026-03-24", start:"06:00", end:"09:30", gym:"Gym 3" },
+  { date:"2026-03-27", start:"07:00", end:"09:30", gym:"Gym 3" },
+  { date:"2026-03-28", start:"09:00", end:"11:30", gym:"Gym 3" },
+  { date:"2026-03-30", start:"18:00", end:"20:00", gym:"Gym 3" },
+  { date:"2026-03-31", start:"06:00", end:"09:30", gym:"Gym 3" },
+];
+
 /* ══════════════════════════════════════════
-   STATE — persisted in localStorage
+   STORAGE LAYER — Firebase first, localStorage fallback
 ══════════════════════════════════════════ */
-const LS      = "garner_badminton_v4";
+const LS      = "garner_badminton_v5";
 const LS_GYMS = "garner_badminton_gyms_v1";
 
-let slots = (() => {
-  // Migrate from old v3 key if present
-  try {
-    const old = localStorage.getItem("garner_badminton_v3");
-    if(old && !localStorage.getItem(LS)){
-      localStorage.setItem(LS, old);
-    }
-  } catch(e){}
-  try { const d=localStorage.getItem(LS); return d?JSON.parse(d):[]; } catch(e){ return []; }
-})();
-
-let gyms = (() => {
-  try {
-    const d = localStorage.getItem(LS_GYMS);
-    if(d){
-      // Merge saved gym states with defaults (allows new gyms added to GYM_DEFAULTS to appear)
-      const saved = JSON.parse(d);
-      return GYM_DEFAULTS.map(def => {
-        const found = saved.find(g => g.name === def.name);
-        return found ? {...def, ...found} : {...def};
-      });
-    }
-    return GYM_DEFAULTS.map(g => ({...g}));
-  } catch(e){ return GYM_DEFAULTS.map(g => ({...g})); }
-})();
-
-let adminUnlocked    = false;
-let activeWeek       = 0;
+let slots          = [];
+let gyms           = JSON.parse(JSON.stringify(GYM_DEFAULTS));
+let adminUnlocked  = false;
+let activeWeek     = 0;
+let pendingSignup  = null;
+let pendingCancel  = null;
 let bulkPreviewSlots = [];
+let firebaseReady  = false;  // true once FB listener is attached
 
-// Transient sign-up state (not persisted)
-let pendingSignup = null; // {slotId, ci}
-let pendingCancel = null; // {slotId, ci}
+/* ── Helper: local fallback read ── */
+function loadFromLocal(){
+  try {
+    // migrate v3→v5
+    const old=localStorage.getItem("garner_badminton_v3");
+    if(old&&!localStorage.getItem(LS)) localStorage.setItem(LS,old);
+    const d=localStorage.getItem(LS);
+    slots = d ? JSON.parse(d) : [];
+  } catch(e){ slots=[]; }
+  try {
+    const d=localStorage.getItem(LS_GYMS);
+    gyms = d ? JSON.parse(d) : JSON.parse(JSON.stringify(GYM_DEFAULTS));
+  } catch(e){ gyms=JSON.parse(JSON.stringify(GYM_DEFAULTS)); }
+}
 
+/* ── Save: writes to Firebase if configured, also to localStorage ── */
 function save(){
-  localStorage.setItem(LS, JSON.stringify(slots));
-  localStorage.setItem(LS_GYMS, JSON.stringify(gyms));
+  // Always keep localStorage as offline backup
+  try {
+    localStorage.setItem(LS,      JSON.stringify(slots));
+    localStorage.setItem(LS_GYMS, JSON.stringify(gyms));
+  } catch(e){}
+
+  const fb = window._fb;
+  if(!fb || !fb.FB_CONFIGURED) return;
+  // Firebase set (overwrites)
+  fb.set(fb.slotsRef, slots || []).catch(e=>console.warn("FB save slots:", e));
+  fb.set(fb.gymsRef,  gyms  || []).catch(e=>console.warn("FB save gyms:", e));
 }
+
+/* ── Seed initial March 2026 slots if DB is empty ── */
+function seedIfEmpty(){
+  if(slots.length > 0) return; // already populated
+  slots = SEED_SLOTS.map(s=>({
+    id:      genId(),
+    date:    s.date,
+    start:   f12(s.start),
+    end:     f12(s.end),
+    gym:     s.gym,
+    notes:   '',
+    formUrl: DEFAULT_FORM,
+    bands:   generateBands(s.start, s.end, 3)
+  }));
+  save();
+  showToast("📅 March 2026 schedule loaded!", 3000);
+}
+
+/* ── Firebase real-time listener ── */
+function initFirebase(){
+  const fb = window._fb;
+  if(!fb || !fb.FB_CONFIGURED){
+    // Fallback to localStorage
+    loadFromLocal();
+    seedIfEmpty();
+    setSyncStatus('local');
+    render();
+    return;
+  }
+
+  setSyncStatus('loading');
+
+  // Listen for slots changes in real-time
+  fb.onValue(fb.slotsRef, snap => {
+    const data = snap.val();
+    slots = data ? (Array.isArray(data) ? data : Object.values(data)) : [];
+    if(!firebaseReady){
+      firebaseReady = true;
+      // Seed if DB is empty on first load
+      if(slots.length === 0) seedIfEmpty();
+      setSyncStatus('live');
+    }
+    // Always keep localStorage in sync for offline fallback
+    try { localStorage.setItem(LS, JSON.stringify(slots)); } catch(e){}
+    render();
+  }, err => {
+    console.warn("Firebase read error:", err);
+    loadFromLocal();
+    setSyncStatus('local');
+    render();
+  });
+
+  // Listen for gym changes
+  fb.onValue(fb.gymsRef, snap => {
+    const data = snap.val();
+    if(data) gyms = Array.isArray(data) ? data : Object.values(data);
+    try { localStorage.setItem(LS_GYMS, JSON.stringify(gyms)); } catch(e){}
+    render();
+  });
+}
+
+function setSyncStatus(state){
+  const el = document.getElementById('syncPill');
+  if(!el) return;
+  if(state==='live'){
+    el.className='sync-pill live';
+    el.innerHTML='<span class="sync-dot"></span>Live Sync';
+  } else if(state==='local'){
+    el.className='sync-pill local';
+    el.innerHTML='<span class="sync-dot"></span>Local Only';
+  } else {
+    el.className='sync-pill loading';
+    el.innerHTML='<span class="sync-dot"></span>Connecting…';
+  }
+}
+
+/* ══════════════════════════════════════════
+   UTILITIES
+══════════════════════════════════════════ */
 function genId(){ return 's'+Date.now()+Math.random().toString(36).slice(2,5); }
+function genCancelCode(){ const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<6;i++) s+=c[Math.floor(Math.random()*c.length)]; return s; }
 
-/* ── Cancellation code generator — 6 chars alphanumeric, easy to read/type ── */
-function genCancelCode(){
-  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // removed 0/O/1/I to avoid confusion
-  let code='';
-  for(let i=0;i<6;i++) code+=chars[Math.floor(Math.random()*chars.length)];
-  return code;
-}
+const f12=t=>{const[h,m]=t.split(':').map(Number);return `${h%12||12}:${String(m).padStart(2,'0')} ${h<12?'AM':'PM'}`;};
+function fmtDay(ds){return new Date(ds+'T00:00:00').toLocaleDateString('en-US',{weekday:'long'});}
+function fmtFull(ds){return new Date(ds+'T00:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});}
+function fmtShort(ds){return new Date(ds+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});}
+function fmtWeek(mon){const sun=new Date(mon);sun.setDate(mon.getDate()+6);return `${fmtShort(mon.toISOString().slice(0,10))} – ${fmtShort(sun.toISOString().slice(0,10))}`;}
+function dayEmoji(ds){return['🌞','🌙','⭐','🔥','💫','🌅','🏅'][new Date(ds+'T00:00:00').getDay()];}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function isoDate(d){return d.toISOString().slice(0,10);}
+function enabledGyms(){return gyms.filter(g=>g.enabled);}
 
-/* ══════════════════════════════════════════
-   HELPERS
-══════════════════════════════════════════ */
-const f12 = t => {
-  const [h,m]=t.split(':').map(Number);
-  return `${h%12||12}:${String(m).padStart(2,'0')} ${h<12?'AM':'PM'}`;
-};
-function fmtDay(ds){ return new Date(ds+'T00:00:00').toLocaleDateString('en-US',{weekday:'long'}); }
-function fmtFull(ds){ return new Date(ds+'T00:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}); }
-function fmtShort(ds){ return new Date(ds+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
-function fmtWeek(mon){
-  const sun=new Date(mon); sun.setDate(mon.getDate()+6);
-  return `${fmtShort(mon.toISOString().slice(0,10))} – ${fmtShort(sun.toISOString().slice(0,10))}`;
-}
-function dayEmoji(ds){
-  return ['🌞','🌙','⭐','🔥','💫','🌅','🏅'][new Date(ds+'T00:00:00').getDay()];
-}
-function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function isoDate(d){ return d.toISOString().slice(0,10); }
-
-function enabledGyms(){ return gyms.filter(g=>g.enabled); }
-
-/* ══════════════════════════════════════════
-   WEEK GROUPING
-══════════════════════════════════════════ */
-function getWeeks(){
-  const today = isoDate(new Date());
-  const map   = {};
-  slots
-    .filter(s => s.date >= today)
-    .forEach(s => {
-      const d   = new Date(s.date+'T00:00:00');
-      const dow = d.getDay();
-      const mon = new Date(d); mon.setDate(d.getDate()+(dow===0?-6:1-dow));
-      const key = isoDate(mon);
-      if(!map[key]) map[key]={monday:mon, slots:[]};
-      map[key].slots.push(s);
+/* ── 20-min band generation ── */
+function generateBands(startStr, endStr, numCourts){
+  const [sh,sm]=startStr.split(':').map(Number);
+  const [eh,em]=endStr.split(':').map(Number);
+  let cur=sh*60+sm;
+  const fin=eh*60+em;
+  const bands=[];
+  while(cur+SLOT_MINS<=fin){
+    const ns=cur, ne=cur+SLOT_MINS;
+    const fmt=m=>`${m%60===0&&(m/60)%12===0?12:Math.floor(m/60)%12||12}:${String(m%60).padStart(2,'0')} ${m<720?'AM':'PM'}`;
+    bands.push({
+      start:fmt(ns), end:fmt(ne),
+      courts:Array.from({length:numCourts},(_,i)=>({name:`Court ${i+1}`,takenBy:'',cancelCode:''}))
     });
+    cur+=SLOT_MINS;
+  }
+  return bands;
+}
+
+/* ── Google Form URL builder ── */
+function buildFormUrl(baseUrl, fields){
+  let url=baseUrl; const params=[]; const FM=FORM_FIELDS;
+  if(FM.date      && fields.date)       params.push(`${FM.date}=${encodeURIComponent(fields.date)}`);
+  if(FM.time      && fields.time)       params.push(`${FM.time}=${encodeURIComponent(fields.time)}`);
+  if(FM.gym       && fields.gym)        params.push(`${FM.gym}=${encodeURIComponent(fields.gym)}`);
+  if(FM.court     && fields.court)      params.push(`${FM.court}=${encodeURIComponent(fields.court)}`);
+  if(FM.name      && fields.name)       params.push(`${FM.name}=${encodeURIComponent(fields.name)}`);
+  if(FM.cancelCode && fields.cancelCode) params.push(`${FM.cancelCode}=${encodeURIComponent(fields.cancelCode)}`);
+  if(params.length) url+=(url.includes('?')?'&':'?')+params.join('&');
+  return url;
+}
+
+/* ── Week grouping ── */
+function getWeeks(){
+  const today=isoDate(new Date()); const map={};
+  slots.filter(s=>s.date>=today).forEach(s=>{
+    const d=new Date(s.date+'T00:00:00');const dow=d.getDay();
+    const mon=new Date(d);mon.setDate(d.getDate()+(dow===0?-6:1-dow));
+    const key=isoDate(mon);
+    if(!map[key]) map[key]={monday:mon,slots:[]};
+    map[key].slots.push(s);
+  });
   return Object.entries(map).sort((a,b)=>a[0].localeCompare(b[0])).map(([,v])=>v);
 }
 
-/* ══════════════════════════════════════════
-   HERO PILL
-══════════════════════════════════════════ */
 function updateHeroPill(){
-  const enabled = enabledGyms();
-  const gymNames = enabled.map(g=>g.name).join(' & ');
-  const totalCourts = enabled.reduce((s,g)=>s+g.courts,0);
-  const pillEl = document.getElementById('heroPill');
-  if(pillEl) pillEl.textContent = enabled.length
-    ? `${gymNames} · ${totalCourts} Court${totalCourts!==1?'s':''}`
-    : 'No gyms open yet';
-
-  const weeks = getWeeks();
-  const el = document.getElementById('heroDateRange');
-  if(!el) return;
-  if(!weeks.length){ el.textContent='No upcoming slots'; return; }
-  const allDates = weeks.flatMap(w=>w.slots.map(s=>s.date)).sort();
-  const first = allDates[0], last = allDates[allDates.length-1];
-  const y1 = new Date(first+'T00:00:00').getFullYear();
-  const y2 = new Date(last+'T00:00:00').getFullYear();
-  el.textContent = y1===y2
-    ? new Date(first+'T00:00:00').toLocaleDateString('en-US',{month:'short'})+' – '+new Date(last+'T00:00:00').toLocaleDateString('en-US',{month:'short',year:'numeric'})
-    : `${y1} – ${y2}`;
+  const enabled=enabledGyms();
+  const pillEl=document.getElementById('heroPill');
+  if(pillEl) pillEl.textContent=enabled.length?`${enabled.map(g=>g.name).join(' & ')} · ${enabled.reduce((s,g)=>s+g.courts,0)} Courts`:'No gyms open yet';
+  const weeks=getWeeks();const el=document.getElementById('heroDateRange');if(!el)return;
+  if(!weeks.length){el.textContent='No upcoming slots';return;}
+  const allDates=weeks.flatMap(w=>w.slots.map(s=>s.date)).sort();
+  const first=allDates[0],last=allDates[allDates.length-1];
+  const y1=new Date(first+'T00:00:00').getFullYear(),y2=new Date(last+'T00:00:00').getFullYear();
+  el.textContent=y1===y2?new Date(first+'T00:00:00').toLocaleDateString('en-US',{month:'short'})+' – '+new Date(last+'T00:00:00').toLocaleDateString('en-US',{month:'short',year:'numeric'}):`${y1} – ${y2}`;
 }
 
 function findCurrentWeekIndex(weeks){
-  const today = isoDate(new Date());
-  for(let i=0;i<weeks.length;i++){
-    const max = weeks[i].slots.map(s=>s.date).reduce((a,b)=>a>b?a:b,'');
-    if(max>=today) return i;
-  }
+  const today=isoDate(new Date());
+  for(let i=0;i<weeks.length;i++){const max=weeks[i].slots.map(s=>s.date).reduce((a,b)=>a>b?a:b,'');if(max>=today)return i;}
   return 0;
 }
 
-/* ══════════════════════════════════════════
-   GYM DROPDOWN POPULATE (add/bulk modals)
-══════════════════════════════════════════ */
-function populateGymDropdown(selectId){
-  const el = document.getElementById(selectId);
-  if(!el) return;
-  const enabled = enabledGyms();
-  el.innerHTML = enabled.length
-    ? enabled.map(g=>`<option value="${escHtml(g.name)}">${escHtml(g.name)}</option>`).join('')
-    : `<option value="">No gyms enabled</option>`;
+function populateGymDropdown(id){
+  const el=document.getElementById(id);if(!el)return;
+  const enabled=enabledGyms();
+  el.innerHTML=enabled.length?enabled.map(g=>`<option value="${escHtml(g.name)}">${escHtml(g.name)}</option>`).join(''):'<option value="">No gyms enabled</option>';
 }
 
 /* ══════════════════════════════════════════
    RENDER
 ══════════════════════════════════════════ */
 function render(){
-  const weeks    = getWeeks();
-  const tabsEl   = document.getElementById('weekTabs');
-  const panelsEl = document.getElementById('weekPanels');
-  tabsEl.innerHTML   = '';
-  panelsEl.innerHTML = '';
-  document.body.classList.toggle('admin-unlocked', adminUnlocked);
+  const weeks=getWeeks();
+  const tabsEl=document.getElementById('weekTabs');
+  const panelsEl=document.getElementById('weekPanels');
+  tabsEl.innerHTML='';panelsEl.innerHTML='';
+  document.body.classList.toggle('admin-unlocked',adminUnlocked);
   updateHeroPill();
 
   if(!weeks.length){
-    panelsEl.innerHTML=`<div class="empty-week">
-      <div class="empty-icon">📅</div>
-      <h3>No upcoming slots</h3>
-      <p>The coordinator hasn't added sessions yet — check back soon!<br>
-      <span style="color:var(--muted-2);font-size:.8rem;">Coordinators: use the <strong style="color:#E8E8E8">⚙️ Coordinator</strong> button to add slots.</span></p>
-    </div>`;
+    panelsEl.innerHTML=`<div class="empty-week"><div class="empty-icon">📅</div><h3>No upcoming slots</h3><p>The coordinator hasn't added sessions yet.<br><span style="color:var(--muted-2);font-size:.8rem;">Coordinators: use the <strong style="color:#E8E8E8">⚙️ Coordinator</strong> button.</span></p></div>`;
     return;
   }
-
-  if(activeWeek >= weeks.length) activeWeek = findCurrentWeekIndex(weeks);
+  if(activeWeek>=weeks.length) activeWeek=findCurrentWeekIndex(weeks);
 
   weeks.forEach((wk,wi)=>{
-    const isActive  = wi===activeWeek;
-    const isCurrent = wi===findCurrentWeekIndex(weeks);
-
-    const tab = document.createElement('button');
-    tab.className = 'tab-btn'+(isActive?' active':'');
-    tab.innerHTML = isActive
-      ? `${isCurrent?'<span style="font-size:.65rem;margin-right:4px;opacity:.8">THIS WEEK</span>':''}${fmtWeek(wk.monday)}`
-      : (isCurrent ? `<span style="font-size:.65rem;display:block;opacity:.7">THIS WEEK</span>${fmtWeek(wk.monday)}` : fmtWeek(wk.monday));
-    tab.onclick = ()=>{ activeWeek=wi; render(); };
+    const isActive=wi===activeWeek,isCurrent=wi===findCurrentWeekIndex(weeks);
+    const tab=document.createElement('button');
+    tab.className='tab-btn'+(isActive?' active':'');
+    tab.innerHTML=isActive?`${isCurrent?'<span style="font-size:.65rem;margin-right:4px;opacity:.8">THIS WEEK</span>':''}${fmtWeek(wk.monday)}`:(isCurrent?`<span style="font-size:.65rem;display:block;opacity:.7">THIS WEEK</span>${fmtWeek(wk.monday)}`:fmtWeek(wk.monday));
+    tab.onclick=()=>{activeWeek=wi;render();};
     tabsEl.appendChild(tab);
 
-    const panel = document.createElement('div');
-    panel.className = 'week-panel'+(isActive?' active':'');
-
-    const monthYear = wk.monday.toLocaleDateString('en-US',{month:'long',year:'numeric'});
-    panel.innerHTML = `
-      <div class="week-header">
-        <div>
-          <div class="week-header-title">${monthYear} &nbsp;·&nbsp; ${fmtWeek(wk.monday)}</div>
-          <div class="week-header-sub">Garner Rec Center · Each session shows the gym and available courts</div>
-        </div>
-        <button class="btn-add-slot" onclick="openAddModal('')">＋ Add Single Slot</button>
-      </div>`;
+    const panel=document.createElement('div');
+    panel.className='week-panel'+(isActive?' active':'');
+    const monthYear=wk.monday.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+    panel.innerHTML=`<div class="week-header"><div><div class="week-header-title">${monthYear} &nbsp;·&nbsp; ${fmtWeek(wk.monday)}</div><div class="week-header-sub">Garner Rec Center · 20-min slots · Each row = one bookable window</div></div><button class="btn-add-slot" onclick="openAddModal('')">＋ Add Session</button></div>`;
 
     [...wk.slots].sort((a,b)=>a.date.localeCompare(b.date)).forEach(slot=>{
-      const isPast = slot.date < isoDate(new Date());
-      const sec = document.createElement('div');
-      sec.className = 'day-section';
-
-      const courtCols = slot.courts.map((c,ci)=>{
-        if(c.takenBy){
-          return `<td>
-            <button class="slot-btn slot-taken" onclick="openCancelModal('${slot.id}',${ci})"
-              title="Click to cancel this booking">
-              👤 ${escHtml(c.takenBy)}
-            </button>
-            <button class="btn-cancel-slot" onclick="openCancelModal('${slot.id}',${ci})">cancel reservation</button>
-          </td>`;
-        } else if(isPast){
-          return `<td><button class="slot-btn slot-taken" disabled style="font-style:normal;cursor:default;">—</button></td>`;
-        } else {
-          return `<td><button class="slot-btn slot-open" onclick="openSignupModal('${slot.id}',${ci})">Available</button></td>`;
-        }
+      const isPast=slot.date<isoDate(new Date());
+      const bands=slot.bands||[];
+      if(!bands.length) return;
+      const numCourts=bands[0].courts.length;
+      const sec=document.createElement('div');
+      sec.className='day-section';
+      const rows=bands.map((band,bi)=>{
+        const cols=band.courts.map((c,ci)=>{
+          if(c.takenBy){
+            return `<td>
+              <button class="slot-btn slot-taken" onclick="openCancelModal('${slot.id}',${bi},${ci})" title="Click to cancel">👤 ${escHtml(c.takenBy)}</button>
+              <button class="btn-cancel-slot" onclick="openCancelModal('${slot.id}',${bi},${ci})">cancel</button>
+            </td>`;
+          } else if(isPast){
+            return `<td><button class="slot-btn slot-taken" disabled style="font-style:normal;cursor:default;opacity:.5;">—</button></td>`;
+          } else {
+            return `<td><button class="slot-btn slot-open" onclick="openSignupModal('${slot.id}',${bi},${ci})">Available</button></td>`;
+          }
+        }).join('');
+        return `<tr><td>${band.start}<br><span style="color:var(--muted);font-weight:400;font-size:.7rem;">to ${band.end}</span></td>${cols}</tr>`;
       }).join('');
-
-      sec.innerHTML = `
+      const courtHeaders=bands[0].courts.map(c=>`<th>🏸 ${escHtml(c.name)}</th>`).join('');
+      sec.innerHTML=`
         <div class="day-card" style="${isPast?'opacity:.45;':''}">
           <div class="day-head">
             <div class="day-head-left">
               <div class="day-dot">${dayEmoji(slot.date)}</div>
               <div>
                 <div class="day-name">${fmtDay(slot.date)}, ${fmtFull(slot.date)}${isPast?' <span style="font-size:.7rem;color:var(--muted);font-weight:400;">(past)</span>':''}</div>
-                <div class="day-date-str">${escHtml(slot.gym||'Gym 3')}${slot.notes?' · '+escHtml(slot.notes):''}</div>
+                <div class="day-date-str">${escHtml(slot.gym||'Gym 3')}${slot.notes?' · '+escHtml(slot.notes):''} · ${bands.length} × 20-min slots</div>
               </div>
             </div>
             <div class="day-time-badge">⏰ ${slot.start} – ${slot.end}</div>
           </div>
           <table class="slots-table">
-            <thead>
-              <tr>
-                <th>Time</th>
-                ${slot.courts.map(c=>`<th>🏸 ${escHtml(c.name)}</th>`).join('')}
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>${slot.start}<br><span style="color:var(--muted);font-weight:400;font-size:.73rem;">to ${slot.end}</span></td>
-                ${courtCols}
-              </tr>
-            </tbody>
+            <thead><tr><th>Time Window</th>${courtHeaders}</tr></thead>
+            <tbody>${rows}</tbody>
           </table>
         </div>`;
       panel.appendChild(sec);
     });
-
     panelsEl.appendChild(panel);
   });
 }
 
 /* ══════════════════════════════════════════
-   SIGN-UP FLOW (with cancellation code)
+   SIGN-UP FLOW
 ══════════════════════════════════════════ */
-function openSignupModal(slotId, ci){
-  const slot = slots.find(s=>s.id===slotId);
-  if(!slot){ showToast("Slot not found."); return; }
-
-  // Double-booking guard — re-check at open time
-  if(slot.courts[ci].takenBy){
-    showToast("⚡ That court was just taken! Choose another.");
-    render(); return;
-  }
-
-  pendingSignup = {slotId, ci};
-  document.getElementById('signupName').value = '';
-  document.getElementById('signupSlotInfo').innerHTML =
+function openSignupModal(slotId, bandIdx, ci){
+  const slot=slots.find(s=>s.id===slotId);
+  if(!slot){showToast("Slot not found.");return;}
+  const band=slot.bands[bandIdx];
+  if(band.courts[ci].takenBy){showToast("⚡ Just taken! Choose another.");render();return;}
+  pendingSignup={slotId,bandIdx,ci};
+  document.getElementById('signupName').value='';
+  document.getElementById('agreeCheck').checked=false;
+  // Reset disclaimer details state
+  const det=document.getElementById('signupDisclaimerDetails');
+  if(det) det.open=true; // open it so user sees it
+  document.getElementById('signupSlotInfo').innerHTML=
     `📅 <strong>${fmtDay(slot.date)}, ${fmtFull(slot.date)}</strong><br>
-     ⏰ ${slot.start} – ${slot.end}<br>
-     🏟️ ${escHtml(slot.gym||'Gym 3')} · <strong>${escHtml(slot.courts[ci].name)}</strong>`;
+     ⏰ <strong>${band.start} – ${band.end}</strong> (20 minutes)<br>
+     🏟️ ${escHtml(slot.gym||'Gym 3')} · <strong>${escHtml(band.courts[ci].name)}</strong>`;
   openOverlay('signupOverlay');
-  setTimeout(()=>document.getElementById('signupName').focus(),160);
+  setTimeout(()=>document.getElementById('signupName').focus(),200);
 }
 
 function confirmSignup(){
-  if(!pendingSignup){ closeOverlay('signupOverlay'); return; }
-  const {slotId, ci} = pendingSignup;
-  const name = document.getElementById('signupName').value.trim();
-  if(!name){ showToast("⚠️ Please enter your name."); return; }
-
-  const slot = slots.find(s=>s.id===slotId);
-  if(!slot){ showToast("Slot not found."); closeOverlay('signupOverlay'); return; }
-
-  // Double-booking guard — re-check at confirm time (race condition protection)
-  if(slot.courts[ci].takenBy){
-    showToast("⚡ Sorry, someone just took that court! Please choose another.");
-    closeOverlay('signupOverlay');
-    pendingSignup = null;
-    render(); return;
+  if(!pendingSignup){closeOverlay('signupOverlay');return;}
+  const {slotId,bandIdx,ci}=pendingSignup;
+  const name=document.getElementById('signupName').value.trim();
+  if(!name){showToast("⚠️ Please enter your name.");return;}
+  if(!document.getElementById('agreeCheck').checked){
+    showToast("⚠️ Please read and agree to the disclaimer first.");
+    document.getElementById('signupDisclaimerDetails').open=true;
+    return;
   }
-
-  // Open Google Form in background tab (optional, non-blocking)
-  const formUrl = slot.formUrl && slot.formUrl !== DEFAULT_FORM && !slot.formUrl.includes('YOUR_GOOGLE')
-    ? slot.formUrl : DEFAULT_FORM;
-  if(formUrl && formUrl.includes('http')){
-    const info = `${fmtFull(slot.date)} | ${slot.start}–${slot.end} | ${slot.gym||'Gym 3'} | ${slot.courts[ci].name} | ${name}`;
-    window.open(formUrl+'#info='+encodeURIComponent(info), '_blank');
+  const slot=slots.find(s=>s.id===slotId);
+  if(!slot){showToast("Slot not found.");closeOverlay('signupOverlay');return;}
+  const band=slot.bands[bandIdx];
+  // Race condition guard
+  if(band.courts[ci].takenBy){
+    showToast("⚡ Someone just took that slot! Choose another.");
+    closeOverlay('signupOverlay');pendingSignup=null;render();return;
   }
+  const code=genCancelCode();
+  band.courts[ci].takenBy=name;
+  band.courts[ci].cancelCode=code;
+  save(); // saves to Firebase + localStorage
+  render();closeOverlay('signupOverlay');pendingSignup=null;
 
-  // Generate unique cancellation code and save booking
-  const code = genCancelCode();
-  slot.courts[ci].takenBy   = name;
-  slot.courts[ci].cancelCode = code;
-  save(); render();
-  closeOverlay('signupOverlay');
-  pendingSignup = null;
+  const baseUrl=slot.formUrl&&slot.formUrl.includes('http')?slot.formUrl:DEFAULT_FORM;
+  const formUrl=buildFormUrl(baseUrl,{
+    date:`${fmtDay(slot.date)}, ${fmtFull(slot.date)}`,
+    time:`${band.start} – ${band.end}`,
+    gym:slot.gym||'Gym 3',
+    court:band.courts[ci].name,
+    name:name,
+    cancelCode:code
+  });
+  window.open(formUrl,'_blank');
 
-  // Show confirmation with code
-  document.getElementById('confirmedDetails').innerHTML =
-    `✅ <strong>${escHtml(name)}</strong> is reserved for:<br>
+  document.getElementById('confirmedDetails').innerHTML=
+    `✅ <strong>${escHtml(name)}</strong> reserved:<br>
      📅 ${fmtDay(slot.date)}, ${fmtFull(slot.date)}<br>
-     ⏰ ${slot.start} – ${slot.end}<br>
-     🏟️ ${escHtml(slot.gym||'Gym 3')} · <strong>${escHtml(slot.courts[ci].name)}</strong>`;
-  document.getElementById('confirmedCode').textContent = code;
+     ⏰ <strong>${band.start} – ${band.end}</strong><br>
+     🏟️ ${escHtml(slot.gym||'Gym 3')} · <strong>${escHtml(band.courts[ci].name)}</strong>`;
+  document.getElementById('confirmedCode').textContent=code;
   openOverlay('confirmedOverlay');
 }
 
 /* ══════════════════════════════════════════
-   CANCELLATION FLOW
+   CANCEL FLOW
 ══════════════════════════════════════════ */
-function openCancelModal(slotId, ci){
-  const slot = slots.find(s=>s.id===slotId);
-  if(!slot||!slot.courts[ci].takenBy){ showToast("This slot is already free."); return; }
-
-  pendingCancel = {slotId, ci};
-  document.getElementById('cancelCodeInput').value = '';
-  document.getElementById('cancelError').style.display = 'none';
-  document.getElementById('cancelSlotInfo').innerHTML =
+function openCancelModal(slotId, bandIdx, ci){
+  const slot=slots.find(s=>s.id===slotId);
+  if(!slot||!slot.bands[bandIdx].courts[ci].takenBy){showToast("This slot is already free.");return;}
+  const band=slot.bands[bandIdx];
+  pendingCancel={slotId,bandIdx,ci};
+  document.getElementById('cancelCodeInput').value='';
+  document.getElementById('cancelError').style.display='none';
+  document.getElementById('cancelSlotInfo').innerHTML=
     `📅 <strong>${fmtDay(slot.date)}, ${fmtFull(slot.date)}</strong><br>
-     ⏰ ${slot.start} – ${slot.end}<br>
-     🏟️ ${escHtml(slot.gym||'Gym 3')} · <strong>${escHtml(slot.courts[ci].name)}</strong><br>
-     👤 Reserved by: <strong>${escHtml(slot.courts[ci].takenBy)}</strong>`;
+     ⏰ <strong>${band.start} – ${band.end}</strong><br>
+     🏟️ ${escHtml(slot.gym||'Gym 3')} · <strong>${escHtml(band.courts[ci].name)}</strong><br>
+     👤 Reserved by: <strong>${escHtml(band.courts[ci].takenBy)}</strong>`;
   openOverlay('cancelOverlay');
   setTimeout(()=>document.getElementById('cancelCodeInput').focus(),160);
 }
 
 function confirmCancel(){
-  if(!pendingCancel){ closeOverlay('cancelOverlay'); return; }
-  const {slotId, ci} = pendingCancel;
-  const entered = document.getElementById('cancelCodeInput').value.trim().toUpperCase();
-  if(!entered){ showToast("⚠️ Enter your cancellation code."); return; }
-
-  const slot = slots.find(s=>s.id===slotId);
-  if(!slot){ showToast("Slot not found."); closeOverlay('cancelOverlay'); return; }
-
-  const court = slot.courts[ci];
-  const storedCode = (court.cancelCode||'').toUpperCase();
-
-  if(!storedCode || entered !== storedCode){
-    document.getElementById('cancelError').style.display = 'block';
-    document.getElementById('cancelCodeInput').value = '';
-    document.getElementById('cancelCodeInput').focus();
-    return;
+  if(!pendingCancel){closeOverlay('cancelOverlay');return;}
+  const {slotId,bandIdx,ci}=pendingCancel;
+  const entered=document.getElementById('cancelCodeInput').value.trim().toUpperCase();
+  if(!entered){showToast("⚠️ Enter your cancellation code.");return;}
+  const slot=slots.find(s=>s.id===slotId);
+  if(!slot){showToast("Slot not found.");closeOverlay('cancelOverlay');return;}
+  const court=slot.bands[bandIdx].courts[ci];
+  if(!court.cancelCode||entered!==court.cancelCode.toUpperCase()){
+    document.getElementById('cancelError').style.display='block';
+    document.getElementById('cancelCodeInput').value='';
+    document.getElementById('cancelCodeInput').focus();return;
   }
-
-  // Code matches — free the slot
-  const who = court.takenBy;
-  court.takenBy    = '';
-  court.cancelCode = '';
-  save(); render();
-  closeOverlay('cancelOverlay');
-  pendingCancel = null;
-  showToast(`✅ Reservation for ${who} cancelled. Slot is now open!`, 3500);
+  const who=court.takenBy;
+  court.takenBy='';court.cancelCode='';
+  save();render();closeOverlay('cancelOverlay');pendingCancel=null;
+  showToast(`✅ ${who}'s reservation cancelled. Slot is open!`,3500);
 }
 
 /* ══════════════════════════════════════════
    ADMIN: PIN
 ══════════════════════════════════════════ */
-function openPinModal(){
-  if(adminUnlocked){ openManage(); return; }
-  openOverlay('pinOverlay');
-  setTimeout(()=>document.getElementById('pinInput').focus(),150);
-}
+function openPinModal(){if(adminUnlocked){openManage();return;}openOverlay('pinOverlay');setTimeout(()=>document.getElementById('pinInput').focus(),150);}
 function checkPin(){
   if(document.getElementById('pinInput').value===ADMIN_PIN){
-    adminUnlocked=true;
-    closeOverlay('pinOverlay');
-    document.getElementById('pinInput').value='';
-    document.getElementById('pinError').style.display='none';
-    render(); showToast("🔓 Admin mode active"); openManage();
-  } else {
-    document.getElementById('pinError').style.display='block';
-    document.getElementById('pinInput').value='';
-    document.getElementById('pinInput').focus();
-  }
+    adminUnlocked=true;closeOverlay('pinOverlay');
+    document.getElementById('pinInput').value='';document.getElementById('pinError').style.display='none';
+    render();showToast("🔓 Admin mode active");openManage();
+  } else {document.getElementById('pinError').style.display='block';document.getElementById('pinInput').value='';document.getElementById('pinInput').focus();}
 }
 
 /* ══════════════════════════════════════════
-   ADMIN: SINGLE SLOT ADD
+   ADMIN: ADD SLOT
 ══════════════════════════════════════════ */
 function openAddModal(defaultDate){
-  if(!adminUnlocked){ openPinModal(); return; }
-  if(!defaultDate){
-    const t=new Date(); t.setDate(t.getDate()+1);
-    defaultDate=isoDate(t);
-  }
+  if(!adminUnlocked){openPinModal();return;}
+  if(!defaultDate){const t=new Date();t.setDate(t.getDate()+1);defaultDate=isoDate(t);}
   populateGymDropdown('slotGym');
   document.getElementById('slotDate').value=defaultDate;
   document.getElementById('slotFormUrl').value=DEFAULT_FORM.includes('YOUR_GOOGLE')?'':DEFAULT_FORM;
@@ -1035,101 +980,81 @@ function openAddModal(defaultDate){
 }
 
 function addSlot(){
-  const date  = document.getElementById('slotDate').value;
-  const start = document.getElementById('slotStart').value;
-  const end   = document.getElementById('slotEnd').value;
-  const notes = document.getElementById('slotNotes').value.trim();
-  const fu    = document.getElementById('slotFormUrl').value.trim()||DEFAULT_FORM;
-
-  if(!date||!start||!end){ showToast("⚠️ Date, start and end time are required."); return; }
-  if(start>=end){ showToast("⚠️ End time must be after start time."); return; }
-
-  const gym       = document.getElementById('slotGym').value;
-  const numCourts = parseInt(document.getElementById('slotCourts').value);
-  const courts    = Array.from({length:numCourts},(_,i)=>({name:`Court ${i+1}`,takenBy:'',cancelCode:''}));
-
-  slots.push({id:genId(),date,start:f12(start),end:f12(end),gym,notes:notes||'',formUrl:fu,courts});
-  save(); closeOverlay('addOverlay'); render();
-  showToast(`✅ Slot added — ${gym} · ${numCourts} court(s)!`);
+  const date=document.getElementById('slotDate').value;
+  const start=document.getElementById('slotStart').value;
+  const end=document.getElementById('slotEnd').value;
+  const notes=document.getElementById('slotNotes').value.trim();
+  const fu=document.getElementById('slotFormUrl').value.trim()||DEFAULT_FORM;
+  if(!date||!start||!end){showToast("⚠️ Date, start and end required.");return;}
+  if(start>=end){showToast("⚠️ End must be after start.");return;}
+  const gym=document.getElementById('slotGym').value;
+  const numCourts=parseInt(document.getElementById('slotCourts').value);
+  const bands=generateBands(start,end,numCourts);
+  if(!bands.length){showToast("⚠️ Time window too short for even one 20-min slot.");return;}
+  slots.push({id:genId(),date,start:f12(start),end:f12(end),gym,notes:notes||'',formUrl:fu,bands});
+  save();closeOverlay('addOverlay');render();
+  showToast(`✅ Session added — ${bands.length} × 20-min slots · ${gym}`);
 }
 
 /* ══════════════════════════════════════════
-   ADMIN: BULK RECURRING ADD
+   ADMIN: BULK ADD
 ══════════════════════════════════════════ */
 function openBulkModal(){
-  if(!adminUnlocked){ openPinModal(); return; }
-  const from=new Date(); from.setDate(from.getDate()+1);
-  const to=new Date(); to.setDate(to.getDate()+28);
+  if(!adminUnlocked){openPinModal();return;}
+  const from=new Date();from.setDate(from.getDate()+1);
+  const to=new Date();to.setDate(to.getDate()+28);
   document.getElementById('bulkFrom').value=isoDate(from);
   document.getElementById('bulkTo').value=isoDate(to);
   document.getElementById('bulkPreview').style.display='none';
   document.getElementById('bulkConfirmBtn').style.display='none';
   populateGymDropdown('bulkGym');
-  bulkPreviewSlots=[];
-  openOverlay('bulkOverlay');
+  bulkPreviewSlots=[];openOverlay('bulkOverlay');
 }
 
 function previewBulk(){
-  const fromStr = document.getElementById('bulkFrom').value;
-  const toStr   = document.getElementById('bulkTo').value;
-  const start   = document.getElementById('bulkStart').value;
-  const end     = document.getElementById('bulkEnd').value;
-  const notes   = document.getElementById('bulkNotes').value.trim();
-
-  if(!fromStr||!toStr||!start||!end){ showToast("⚠️ Fill in all date and time fields."); return; }
-  if(start>=end){ showToast("⚠️ End time must be after start time."); return; }
-
+  const fromStr=document.getElementById('bulkFrom').value;
+  const toStr=document.getElementById('bulkTo').value;
+  const start=document.getElementById('bulkStart').value;
+  const end=document.getElementById('bulkEnd').value;
+  const notes=document.getElementById('bulkNotes').value.trim();
+  if(!fromStr||!toStr||!start||!end){showToast("⚠️ Fill all date/time fields.");return;}
+  if(start>=end){showToast("⚠️ End must be after start.");return;}
   const selectedDays=[...document.querySelectorAll('input[name="bulkDay"]:checked')].map(el=>parseInt(el.value));
-  if(!selectedDays.length){ showToast("⚠️ Select at least one day of the week."); return; }
-
-  const gym       = document.getElementById('bulkGym').value;
-  const numCourts = parseInt(document.getElementById('bulkCourts').value);
-
+  if(!selectedDays.length){showToast("⚠️ Select at least one day.");return;}
+  const gym=document.getElementById('bulkGym').value;
+  const numCourts=parseInt(document.getElementById('bulkCourts').value);
+  const testBands=generateBands(start,end,numCourts);
+  if(!testBands.length){showToast("⚠️ Time window too short for even one 20-min slot.");return;}
   const cur=new Date(fromStr+'T00:00:00');
   const endDate=new Date(toStr+'T00:00:00');
   bulkPreviewSlots=[];
-
-  const existingKeys=new Set(slots.map(s=>s.date+f12(s.start||'')+s.gym));
-
+  const existingKeys=new Set(slots.map(s=>s.date+s.start+s.gym));
   while(cur<=endDate){
     if(selectedDays.includes(cur.getDay())){
       const ds=isoDate(cur);
       const key=ds+f12(start)+gym;
       if(!existingKeys.has(key)){
-        const courts=Array.from({length:numCourts},(_,i)=>({name:`Court ${i+1}`,takenBy:'',cancelCode:''}));
-        bulkPreviewSlots.push({
-          id:genId(), date:ds,
-          start:f12(start), end:f12(end),
-          gym, notes:notes||'',
-          formUrl:DEFAULT_FORM,
-          courts
-        });
+        const bands=generateBands(start,end,numCourts);
+        bulkPreviewSlots.push({id:genId(),date:ds,start:f12(start),end:f12(end),gym,notes:notes||'',formUrl:DEFAULT_FORM,bands});
       }
     }
     cur.setDate(cur.getDate()+1);
   }
-
-  if(!bulkPreviewSlots.length){
-    showToast("⚠️ No new slots to add (all dates may already exist).");
-    return;
-  }
-
+  if(!bulkPreviewSlots.length){showToast("⚠️ No new sessions (may already exist).");return;}
   const DAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const list=document.getElementById('bulkPreviewList');
-  list.innerHTML=bulkPreviewSlots.map(s=>`
+  document.getElementById('bulkPreviewList').innerHTML=bulkPreviewSlots.map(s=>`
     <span style="color:#E8E8E8;font-weight:600;">${DAY_NAMES[new Date(s.date+'T00:00:00').getDay()]} ${fmtShort(s.date)}</span>
-    <span style="color:var(--muted);"> · ${s.gym} · ${s.start}–${s.end} · ${s.courts.length} court(s)</span><br>`
-  ).join('');
+    <span style="color:var(--muted);"> · ${s.gym} · ${s.start}–${s.end} · ${s.bands.length} slots × ${s.bands[0].courts.length} courts</span><br>`).join('');
   document.getElementById('bulkPreview').style.display='block';
   document.getElementById('bulkConfirmBtn').style.display='block';
-  document.getElementById('bulkConfirmBtn').textContent=`✅ Add All ${bulkPreviewSlots.length} Slots`;
+  document.getElementById('bulkConfirmBtn').textContent=`✅ Add All ${bulkPreviewSlots.length} Sessions`;
 }
 
 function confirmBulk(){
-  if(!bulkPreviewSlots.length) return;
+  if(!bulkPreviewSlots.length)return;
   slots.push(...bulkPreviewSlots);
-  save(); closeOverlay('bulkOverlay'); render();
-  showToast(`✅ ${bulkPreviewSlots.length} slots added!`);
+  save();closeOverlay('bulkOverlay');render();
+  showToast(`✅ ${bulkPreviewSlots.length} sessions added!`);
   bulkPreviewSlots=[];
 }
 
@@ -1137,98 +1062,85 @@ function confirmBulk(){
    ADMIN: GYM TOGGLE
 ══════════════════════════════════════════ */
 function toggleGym(gymName){
-  const g = gyms.find(x=>x.name===gymName);
-  if(!g) return;
-  g.enabled = !g.enabled;
-  save(); renderGymChips(); updateHeroPill();
+  const g=gyms.find(x=>x.name===gymName);if(!g)return;
+  g.enabled=!g.enabled;save();renderGymChips();updateHeroPill();
   showToast(`${gymName} is now ${g.enabled?'✅ enabled':'⛔ disabled'}.`);
 }
-
 function renderGymChips(){
-  const el = document.getElementById('gymChips');
-  if(!el) return;
-  el.innerHTML = gyms.map(g=>`
-    <button class="gym-chip ${g.enabled?'active':''}" onclick="toggleGym('${escHtml(g.name)}')">
-      <span class="dot"></span>
-      ${escHtml(g.name)} — ${g.enabled?'Open':'Closed'}
-    </button>`).join('');
+  const el=document.getElementById('gymChips');if(!el)return;
+  el.innerHTML=gyms.map(g=>`<button class="gym-chip ${g.enabled?'active':''}" onclick="toggleGym('${escHtml(g.name)}')"><span class="dot"></span>${escHtml(g.name)} — ${g.enabled?'Open':'Closed'}</button>`).join('');
 }
 
 /* ══════════════════════════════════════════
-   ADMIN: MANAGE MODAL
+   ADMIN: MANAGE
 ══════════════════════════════════════════ */
 function openManage(){
   renderGymChips();
   const el=document.getElementById('manageList');
   const sorted=[...slots].sort((a,b)=>a.date.localeCompare(b.date));
-
-  if(!sorted.length){
-    el.innerHTML=`<p style="color:var(--muted);font-size:.88rem;">No slots added yet.</p>`;
-  } else {
-    el.innerHTML=sorted.map(s=>`
-      <div class="manage-item">
+  if(!sorted.length){el.innerHTML=`<p style="color:var(--muted);font-size:.88rem;">No sessions added yet.</p>`;}
+  else {
+    el.innerHTML=sorted.map(s=>{
+      const allBookings=s.bands.flatMap(b=>b.courts.filter(c=>c.takenBy).map(c=>({band:b,court:c})));
+      return `<div class="manage-item">
         <div class="manage-badge">${dayEmoji(s.date)}</div>
         <div class="manage-info">
           <div class="manage-name">${fmtDay(s.date)}, ${fmtFull(s.date)}</div>
-          <div class="manage-sub">${escHtml(s.gym||'Gym 3')} · ${s.start} – ${s.end}${s.notes?' · '+escHtml(s.notes):''}</div>
+          <div class="manage-sub">${escHtml(s.gym||'Gym 3')} · ${s.start} – ${s.end}${s.notes?' · '+escHtml(s.notes):''} · ${s.bands.length} × 20-min slots</div>
           <div class="manage-sub" style="margin-top:4px;">
-            ${s.courts.map(c=>
-              c.takenBy
-                ? `${escHtml(c.name)}: <strong style="color:#E8E8E8">${escHtml(c.takenBy)}</strong>
-                   <button class="btn-cancel-booking" onclick="adminCancelBooking('${s.id}','${escHtml(c.name)}')">✕ free</button>`
-                : `${escHtml(c.name)}: <span style="color:var(--open-text)">open</span>`
-            ).join(' &nbsp;·&nbsp; ')}
+            ${allBookings.length?allBookings.map(({band,court})=>
+              `${band.start}: <strong style="color:#E8E8E8">${escHtml(court.takenBy)}</strong> (${escHtml(court.name)})
+               <button class="btn-cancel-booking" onclick="adminCancelBooking('${s.id}','${band.start}','${escHtml(court.name)}')">✕ free</button>`
+            ).join('<br>'):
+            '<span style="color:var(--open-text)">No bookings yet</span>'}
           </div>
         </div>
         <button class="btn-del" onclick="deleteSlot('${s.id}')">Delete</button>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
   openOverlay('manageOverlay');
 }
 
-/* Admin can force-cancel any booking without a code */
-function adminCancelBooking(slotId, courtName){
-  const slot = slots.find(s=>s.id===slotId);
-  if(!slot) return;
-  const court = slot.courts.find(c=>c.name===courtName);
-  if(!court||!court.takenBy) return;
-  if(!confirm(`Cancel ${court.takenBy}'s booking for ${courtName}?`)) return;
-  const who = court.takenBy;
-  court.takenBy=''; court.cancelCode='';
-  save(); openManage(); render();
-  showToast(`✅ ${who}'s booking cancelled.`);
+function adminCancelBooking(slotId, bandStart, courtName){
+  const slot=slots.find(s=>s.id===slotId);if(!slot)return;
+  const band=slot.bands.find(b=>b.start===bandStart);if(!band)return;
+  const court=band.courts.find(c=>c.name===courtName);if(!court||!court.takenBy)return;
+  if(!confirm(`Cancel ${court.takenBy}'s booking for ${courtName} at ${bandStart}?`))return;
+  const who=court.takenBy;court.takenBy='';court.cancelCode='';
+  save();openManage();render();showToast(`✅ ${who}'s booking cancelled.`);
 }
-
 function deleteSlot(id){
-  if(!confirm("Delete this slot and all its bookings?")) return;
-  slots=slots.filter(s=>s.id!==id);
-  save(); openManage(); render();
-  showToast("🗑 Slot deleted.");
+  if(!confirm("Delete this session and all its bookings?"))return;
+  slots=slots.filter(s=>s.id!==id);save();openManage();render();showToast("🗑 Session deleted.");
 }
 
-/* ══════════════════════════════════════════
-   OVERLAY HELPERS
-══════════════════════════════════════════ */
-function openOverlay(id){ document.getElementById(id).classList.add('open'); }
-function closeOverlay(id){ document.getElementById(id).classList.remove('open'); }
+/* ── Overlays ── */
+function openOverlay(id){document.getElementById(id).classList.add('open');}
+function closeOverlay(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.overlay').forEach(el=>{el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');});});
 
-document.querySelectorAll('.overlay').forEach(el=>{
-  el.addEventListener('click', e=>{ if(e.target===el) el.classList.remove('open'); });
-});
+function showToast(msg,dur=2600){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 
 /* ══════════════════════════════════════════
-   TOAST
+   BOOT
+   Wait for Firebase module to be ready, then init
 ══════════════════════════════════════════ */
-function showToast(msg, dur=2600){
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), dur);
+function boot(){
+  // _fb is set by the module script; wait up to 3s for it
+  if(window._fb !== undefined){
+    initFirebase();
+  } else {
+    let attempts=0;
+    const wait=setInterval(()=>{
+      attempts++;
+      if(window._fb !== undefined){ clearInterval(wait); initFirebase(); }
+      else if(attempts>30){ clearInterval(wait); loadFromLocal(); seedIfEmpty(); setSyncStatus('local'); render(); }
+    },100);
+  }
 }
 
-/* ══════════════════════════════════════════
-   INIT
-══════════════════════════════════════════ */
-render();
+boot();
 </script>
 </body>
 </html>
